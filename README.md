@@ -1,6 +1,6 @@
 # Yumi Server - Smart Assistant
 
-![Yumi](static\logo.png)
+![Yumi](static/logo2.png)
 
 Yumi, comprehensive AI-powered smart assistant with *customizable* voice interaction, smart home control, and multi-service integration capabilities.
 
