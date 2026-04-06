@@ -1,0 +1,74 @@
+ALTER DATABASE smart_assistant CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+-- 修改Users表，将user_id从INT AUTO_INCREMENT改为VARCHAR(10)
+CREATE TABLE Users (
+    user_id VARCHAR(10) PRIMARY KEY,
+    user_username VARCHAR(50) NOT NULL,
+    user_password TEXT NOT NULL,
+    user_email VARCHAR(50) NOT NULL,
+    user_tel VARCHAR(20) NULL,
+    user_avatar VARCHAR(255) NULL,
+    create_at DATE NOT NULL,
+    user_status enum('enable','disable') NOT NULL
+);
+
+CREATE TABLE Admin (
+    admin_id INT AUTO_INCREMENT PRIMARY KEY,
+    admin_username VARCHAR(50) NOT NULL,
+    admin_password TEXT NOT NULL
+);
+
+CREATE TABLE Model (
+    model_id INT AUTO_INCREMENT PRIMARY KEY,
+    model_name VARCHAR(30) NOT NULL,
+    model_password VARCHAR(24) NOT NULL,
+    ip_address VARCHAR(15) NOT NULL
+);
+
+-- 修改user_model表中的外键引用
+CREATE TABLE user_model (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id VARCHAR(10) NOT NULL,
+    model_id VARCHAR(255) NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+
+-- 修改Schedule表中的外键引用
+CREATE TABLE Schedule (
+    schedule_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id VARCHAR(10) NOT NULL,
+    model_id INT NOT NULL,
+    timestamp INT NOT NULL,
+    content TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES Users(user_id),
+    FOREIGN KEY (model_id) REFERENCES Model(model_id)
+);
+
+CREATE TABLE Smart_home (
+    smart_home_id INT AUTO_INCREMENT PRIMARY KEY,
+    model_id INT NOT NULL,
+    smart_home_name VARCHAR(30) NOT NULL,
+    smart_home_status VARCHAR(30) NOT NULL,
+    FOREIGN KEY (model_id) REFERENCES Model(model_id)
+);
+
+-- 修改Scene表中的外键引用
+CREATE TABLE Scene (
+    scene_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id VARCHAR(10) NOT NULL,
+    scene_name VARCHAR(30) NOT NULL,
+    general_volume INT DEFAULT NULL,
+    music_volume INT DEFAULT NULL,
+    auto_time_start INT DEFAULT NULL,
+    auto_time_end INT DEFAULT NULL,
+    FOREIGN KEY (user_id) REFERENCES Users(user_id)
+);
+
+CREATE TABLE Config (
+    config_id INT AUTO_INCREMENT PRIMARY KEY,
+    model_id INT NOT NULL,
+    general_volume INT NOT NULL,
+    music_volume INT NOT NULL,
+    power enum('on','off') DEFAULT NULL,
+    FOREIGN KEY (model_id) REFERENCES Model(model_id)
+);

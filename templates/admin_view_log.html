@@ -1,0 +1,1718 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="{{ url_for('static', filename='Small_logo.png') }}" type="image/png">
+    <title>System Log View</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #1c5fa2;
+            --primary-dark: #185491;
+            --primary-light: #4076ab;
+            --success-color: #25c2a0;
+            --info-color: #56ccf2;
+            --warning-color: #ffd166;
+            --danger-color: #ff5d8f;
+            --secondary-color: #6c757d;
+            --light-color: #f8f9fa;
+            --dark-color: #1e2030;
+            --darker-color: #191b28;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --body-color: #f8f9fd;
+            --text-color: #e9eafa;
+            --text-secondary: #b0b3b8;
+            --input-bg: #3a3b3c;
+            --input-border: #5a5b5c;
+        }
+
+        /* Light mode variables */
+        [data-theme="light"] {
+            --dark-color: #ffffff;
+            --darker-color: #f8f9fa;
+            --border-color: #dee2e6;
+            --body-color: #ffffff;
+            --text-color: #333333;
+            --text-secondary: #666666;
+            --input-bg: #ffffff;
+            --input-border: #dee2e6;
+        }
+
+        /* Light mode specific fixes */
+        [data-theme="light"] .bg-dark {
+            background-color: #ffffff !important;
+        }
+
+        /* Dark mode variables */
+        [data-theme="dark"] {
+            --dark-color: #242526;
+            --darker-color: #18191a;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --body-color: #18191a;
+            --text-color: #e4e6ea;
+            --text-secondary: #b0b3b8;
+            --input-bg: #3a3b3c;
+            --input-border: #5a5b5c;
+        }
+
+        /* 全局样式 */
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: var(--darker-color);
+            color: var(--text-color);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .bg-dark{
+            --bs-bg-opacity: 1;
+            background-color: var(--darker-color) !important;
+        }
+
+        /* 全屏日志查看器 */
+        .fullscreen-log-viewer {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+        }
+
+        /* 顶部控制栏 */
+        .log-header {
+            background-color: var(--dark-color);
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            z-index: 100;
+        }
+
+        .log-header h5 {
+            font-weight: 600;
+            letter-spacing: 0.6px;
+        }
+
+        .log-header .back-btn {
+            border-color: rgba(255, 255, 255, 0.3);
+            transition: all 0.3s;
+            color: var(--text-color);
+        }
+
+        .log-header .back-btn:hover {
+            background-color: rgba(255, 255, 255, 0);
+            border-color: rgba(255, 255, 255, 0.5);
+            color: var(--text-color);
+            transform: scale(1.5);
+        }
+
+        /* 按钮美化 */
+        .btn {
+            padding: 0.55rem 1.2rem;
+            font-weight: 500;
+            border-radius: 0.7rem;
+            transition: all 0.3s;
+            box-shadow: 0 3px 10px rgba(50, 50, 93, 0.12);
+            letter-spacing: 0.4px;
+            border: none;
+            position: relative;
+            overflow: hidden;
+            color: var(--text-color);
+        }
+
+        /* 主要按钮 - 带渐变和微光效果 */
+        .btn-primary {
+            background: linear-gradient(45deg, var(--primary-color) 0%, #6f75ed 100%);
+            color: white !important;
+            font-weight: 500;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(45deg, var(--primary-dark) 0%, #616aea 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(106, 72, 233, 0.25);
+        }
+
+        .btn-primary:active {
+            transform: translateY(1px);
+        }
+
+        .btn-info {
+            background: linear-gradient(45deg, var(--info-color) 0%, #38bdf8 100%);
+            color: white !important;
+        }
+
+        .btn-info:hover {
+            background: linear-gradient(45deg, #44b9ee 0%, #24aef5 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(56, 189, 248, 0.25);
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, var(--success-color) 0%, #21ae8c 100%);
+            color: white !important;
+        }
+
+        .btn-success:hover {
+            background: linear-gradient(45deg, #21ae8c 0%, #198d73 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(37, 194, 160, 0.25);
+        }
+
+        .btn-outline-secondary,
+        .btn-outline-primary,
+        .btn-outline-info {
+            background-color: var(--dark-color);
+            border: 1.5px solid;
+            transition: all 0.3s;
+        }
+
+        /* Dark mode outline buttons */
+        [data-theme="dark"] .btn-outline-secondary {
+            border-color: var(--secondary-color);
+            color: var(--secondary-color);
+        }
+
+        [data-theme="dark"] .btn-outline-primary {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        [data-theme="dark"] .btn-outline-info {
+            border-color: var(--info-color);
+            color: var(--info-color);
+        }
+
+        /* Light mode outline buttons */
+        [data-theme="light"] .btn-outline-secondary {
+            border-color: #6c757d;
+            color: #495057;
+            background-color: #ffffff;
+        }
+
+        [data-theme="light"] .btn-outline-primary {
+            border-color: var(--primary-color);
+            color: #4c4bbd;
+            background-color: #ffffff;
+        }
+
+        [data-theme="light"] .btn-outline-info {
+            border-color: #17a2b8;
+            color: #138496;
+            background-color: #ffffff;
+        }
+
+        .btn-outline-secondary:hover {
+            background-color: var(--secondary-color);
+            color: white !important;
+            box-shadow: 0 4px 12px rgba(108, 117, 125, 0.25);
+        }
+
+        .btn-outline-primary:hover {
+            background-color: var(--primary-color);
+            color: white !important;
+            box-shadow: 0 4px 12px rgba(94, 96, 206, 0.25);
+        }
+
+        .btn-outline-info:hover {
+            background-color: var(--info-color);
+            color: white !important;
+            box-shadow: 0 4px 12px rgba(86, 204, 242, 0.25);
+        }
+
+        .btn:focus {
+            box-shadow: none;
+        }
+
+        .btn i {
+            margin-right: 8px;
+            font-size: 0.95em;
+            vertical-align: -1px;
+        }
+
+        .btn-sm {
+            padding: 0.4rem 1rem;
+            font-size: 0.85rem;
+            border-radius: 0.5rem;
+        }
+
+        /* 日志控制面板 */
+        .log-controls {
+            background-color: var(--dark-color);
+            padding: 1rem 1.5rem;
+            margin: 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .log-control-item {
+            margin-bottom: 0.5rem;
+        }
+
+        .log-control-item label {
+            font-weight: 500;
+            font-size: 0.9rem;
+            color: var(--text-color);
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .custom-search-input {
+            position: relative;
+        }
+
+        .custom-search-input input {
+            padding-left: 40px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            height: 42px;
+            transition: all 0.3s;
+            font-size: 0.95rem;
+        }
+
+        .custom-search-input input:focus {
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 0.25rem rgba(118, 120, 237, 0.15);
+        }
+
+        .custom-search-input input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .custom-search-input i {
+            position: absolute;
+            left: 14px;
+            top: 41%;
+            transform: translateY(-50%);
+            color: var(--primary-color);
+            opacity: 0.7;
+            font-size: 1rem;
+        }
+
+        .form-select {
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            height: 42px;
+            color: var(--text-color);
+            background-color: var(--input-bg);
+            transition: all 0.3s;
+            cursor: pointer;
+            font-size: 0.95rem;
+            background-position: right 14px center;
+            padding-right: 38px;
+        }
+
+        .form-select:focus {
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 0.25rem rgba(118, 120, 237, 0.15);
+        }
+
+        .fa,
+        .fa-brands,
+        .fa-classic,
+        .fa-regular,
+        .fa-sharp,
+        .fa-solid,
+        .fab,
+        .far,
+        .fas {
+            margin: 5px;
+        }
+
+        /* 日志内容区域 - 代码编辑器风格 */
+        #logViewer {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+            background-color: var(--darker-color);
+        }
+
+        #logViewer .log-content {
+            display: flex;
+            height: 100%;
+            position: relative;
+        }
+
+        #logViewer .line-numbers {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 120px;
+            /* 增加宽度以容纳两种行号 */
+            height: 100%;
+            background-color: var(--dark-color);
+            color: var(--text-secondary);
+            padding: 12px 0;
+            /* 移除水平内边距，由子元素控制 */
+            text-align: right;
+            /* 确保文本右对齐 */
+            font-size: 0.85rem;
+            font-weight: 500;
+            user-select: none;
+            overflow: hidden;
+            border-right: 1px solid var(--border-color);
+            z-index: 10;
+            pointer-events: none;
+            display: flex;
+            box-sizing: border-box;
+            /* 确保宽度计算包含内边距和边框 */
+        }
+
+        /* 修复行号容器内的内容定位 */
+        #logViewer .line-numbers .sequence-numbers,
+        #logViewer .line-numbers .actual-numbers {
+            position: absolute;
+            top: 12px;
+            /* 与父容器的padding-top一致 */
+            height: auto;
+            width: 60px;
+            /* 固定宽度，确保对称 */
+            box-sizing: border-box;
+            /* 确保内边距不会增加元素宽度 */
+            line-height: 21px;
+            /* 确保行高与日志内容一致 */
+        }
+
+        /* Dark mode line numbers */
+        [data-theme="dark"] #logViewer .line-numbers .sequence-numbers {
+            left: 0;
+            text-align: center;
+            padding: 0 8px;
+            border-right: 1px solid var(--border-color);
+            color: #7a7fa8;
+            box-sizing: border-box;
+        }
+
+        [data-theme="dark"] #logViewer .line-numbers .actual-numbers {
+            left: 60px;
+            text-align: center;
+            padding: 0 8px;
+            color: #a3a8d4;
+            font-weight: 600;
+            box-sizing: border-box;
+        }
+
+        /* Light mode line numbers */
+        [data-theme="light"] #logViewer .line-numbers .sequence-numbers {
+            left: 0;
+            text-align: center;
+            padding: 0 8px;
+            border-right: 1px solid var(--border-color);
+            color: #6c757d;
+            box-sizing: border-box;
+        }
+
+        [data-theme="light"] #logViewer .line-numbers .actual-numbers {
+            left: 60px;
+            text-align: center;
+            padding: 0 8px;
+            color: #495057;
+            font-weight: 600;
+            box-sizing: border-box;
+        }
+
+        /* 添加标题提示 - Dark mode */
+        [data-theme="dark"] #logViewer .line-numbers::before {
+            content: "#";
+            position: absolute;
+            top: -18px;
+            left: 25px;
+            color: #5a5f7a;
+            font-size: 0.75rem;
+        }
+
+        [data-theme="dark"] #logViewer .line-numbers::after {
+            content: "";
+            position: absolute;
+            top: -18px;
+            left: 85px;
+            color: #5a5f7a;
+            font-size: 0.75rem;
+        }
+
+        /* 添加标题提示 - Light mode */
+        [data-theme="light"] #logViewer .line-numbers::before {
+            content: "#";
+            position: absolute;
+            top: -18px;
+            left: 25px;
+            color: #6c757d;
+            font-size: 0.75rem;
+        }
+
+        [data-theme="light"] #logViewer .line-numbers::after {
+            content: "";
+            position: absolute;
+            top: -18px;
+            left: 85px;
+            color: #6c757d;
+            font-size: 0.75rem;
+        }
+
+        #logViewer .line-numbers span {
+            display: block;
+            height: 21px;
+            /* 与日志行高度一致 */
+            line-height: 21px;
+            /* 与日志行行高一致 */
+            box-sizing: border-box;
+            /* 确保高度计算包含内边距 */
+            padding-top: 0;
+            /* 移除顶部内边距 */
+            padding-bottom: 0;
+            /* 移除底部内边距 */
+            margin: 0;
+            /* 移除外边距 */
+        }
+
+        /* Dark mode scrollbar */
+        [data-theme="dark"] #logViewer .log-lines {
+            position: absolute;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            overflow-y: auto;
+            padding: 0px 0 12px 120px;
+            background-color: var(--darker-color);
+            white-space: pre;
+            color: var(--text-color);
+            font-size: 0.85rem;
+            scrollbar-width: thin;
+            scrollbar-color: #3c414c #1e2229;
+        }
+
+        /* Light mode scrollbar */
+        [data-theme="light"] #logViewer .log-lines {
+            position: absolute;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            overflow-y: auto;
+            padding: 0px 0 12px 120px;
+            background-color: var(--darker-color);
+            white-space: pre;
+            color: var(--text-color);
+            font-size: 0.85rem;
+            scrollbar-width: thin;
+            scrollbar-color: #adb5bd #e9ecef;
+        }
+
+        #logViewer .log-line {
+            padding: 0 18px 0 10px;
+            /* 减少左侧内边距，使内容更靠近行号 */
+            height: 21px;
+            line-height: 21px;
+            white-space: pre;
+            transition: background-color 0.2s;
+            border-left: 3px solid transparent;
+            box-sizing: border-box;
+            /* 确保高度计算包含内边距和边框 */
+            margin: 0;
+            /* 移除外边距 */
+        }
+
+        #logViewer .log-line:hover {
+            background-color: rgba(99, 100, 124, 0.3);
+        }
+
+        #logViewer .log-line.selected {
+            background-color: rgba(76, 86, 136, 0.4);
+        }
+
+        /* 日志级别颜色 - Dark Mode */
+        [data-theme="dark"] #logViewer .log-debug {
+            color: #9a9cbc;
+            font-style: italic;
+        }
+
+        [data-theme="dark"] #logViewer .log-info {
+            color: #7dc4ff;
+        }
+
+        [data-theme="dark"] #logViewer .log-success {
+            color: #62dfbd;
+        }
+
+        [data-theme="dark"] #logViewer .log-warning {
+            color: #ffda85;
+            border-left-color: #e9b949;
+        }
+
+        [data-theme="dark"] #logViewer .log-error {
+            color: #ff8cb2;
+            border-left-color: #f7567c;
+            font-weight: 500;
+        }
+
+        [data-theme="dark"] #logViewer .log-critical {
+            color: #ff7b8c;
+            background-color: rgba(255, 83, 112, 0.15);
+            border-left-color: #ff5370;
+            font-weight: bold;
+        }
+
+        /* 日志级别颜色 - Light Mode */
+        [data-theme="light"] #logViewer .log-debug {
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        [data-theme="light"] #logViewer .log-info {
+            color: #0d6efd;
+        }
+
+        [data-theme="light"] #logViewer .log-success {
+            color: #198754;
+        }
+
+        [data-theme="light"] #logViewer .log-warning {
+            color: #fd7e14;
+            border-left-color: #fd7e14;
+        }
+
+        [data-theme="light"] #logViewer .log-error {
+            color: #dc3545;
+            border-left-color: #dc3545;
+            font-weight: 500;
+        }
+
+        [data-theme="light"] #logViewer .log-critical {
+            color: #dc3545;
+            background-color: rgba(220, 53, 69, 0.1);
+            border-left-color: #dc3545;
+            font-weight: bold;
+        }
+
+        /* 高亮关键词 - Dark mode */
+        [data-theme="dark"] #logViewer .highlight {
+            background-color: rgba(255, 188, 60, 0.35);
+            color: #ffe9c2;
+            border-radius: 3px;
+            padding: 0 3px;
+            margin: 0 -3px;
+        }
+
+        /* 高亮关键词 - Light mode */
+        [data-theme="light"] #logViewer .highlight {
+            background-color: rgba(255, 193, 7, 0.3);
+            color: #856404;
+            border-radius: 3px;
+            padding: 0 3px;
+            margin: 0 -3px;
+        }
+
+        /* 日志统计信息 */
+        .log-stats {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1.5rem;
+            background-color: var(--dark-color);
+            border-bottom: 1px solid var(--border-color);
+            transition: all 0.3s;
+        }
+
+        .log-stats .badge {
+            font-size: 0.85rem;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+        }
+
+        .badge.bg-primary {
+            background: linear-gradient(45deg, var(--primary-color), #6f75ed) !important;
+            color: white !important;
+        }
+
+        .badge.bg-secondary {
+            background: linear-gradient(45deg, var(--secondary-color), #828a91) !important;
+            color: white !important;
+        }
+
+        .badge.bg-info {
+            background: linear-gradient(45deg, var(--info-color), #38bdf8) !important;
+            color: white !important;
+        }
+
+        /* 加载动画 - Dark mode */
+        [data-theme="dark"] .loading-overlay {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(30, 32, 48, 0.9);
+            z-index: 1000;
+        }
+
+        /* 加载动画 - Light mode */
+        [data-theme="light"] .loading-overlay {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.9);
+            z-index: 1000;
+        }
+
+        .loading-overlay .spinner-border {
+            width: 3.5rem;
+            height: 3.5rem;
+            color: var(--primary-color);
+            border-width: 0.3rem;
+        }
+
+        .loading-overlay h5 {
+            color: var(--text-color);
+            margin-top: 1.75rem;
+            font-weight: 600;
+            letter-spacing: 0.4px;
+        }
+
+        .loading-overlay p {
+            color: var(--text-secondary);
+            margin-top: 0.6rem;
+            letter-spacing: 0.2px;
+        }
+
+        /* 无数据消息 */
+        #noDataMessage {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: var(--dark-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            max-width: 500px;
+            width: 90%;
+        }
+
+        /* 分页控件容器 */
+        .pagination-container {
+            background-color: var(--dark-color);
+            padding: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        /* 分页样式 */
+        .pagination {
+            margin: 0;
+        }
+
+        .pagination .page-link {
+            color: var(--text-color);
+            background-color: var(--darker-color);
+            border-color: var(--border-color);
+            padding: 0.6rem 1rem;
+            font-weight: 500;
+            transition: all 0.3s;
+            margin: 0 0.2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+            font-size: 0.9rem;
+        }
+
+        .pagination .page-link:hover {
+            z-index: 2;
+            color: var(--text-color) !important;
+            background-color: rgba(94, 96, 206, 0.2);
+            border-color: var(--primary-color);
+            transform: translateY(-1px);
+            box-shadow: 0 3px 7px rgba(0, 0, 0, 0.2);
+        }
+
+        .pagination .page-item.active .page-link {
+            background: linear-gradient(45deg, var(--primary-color), #6f75ed);
+            border-color: var(--primary-color);
+            color: white !important;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .pagination .page-item.disabled .page-link {
+            color: var(--text-secondary);
+            background-color: rgba(30, 32, 48, 0.5);
+            border-color: var(--border-color);
+        }
+
+        /* 底部工具栏 */
+        .log-footer {
+            background-color: var(--dark-color);
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        /* 移动设备适配 */
+        @media (max-width: 991px) {
+            .log-controls .row {
+                row-gap: 0.75rem;
+            }
+
+            #logViewer {
+                height: 400px;
+            }
+
+            .card-header {
+                padding: 1.2rem 1.25rem;
+            }
+
+            .log-controls {
+                padding: 1.25rem;
+            }
+        }
+
+        @media (max-width: 767px) {
+            .log-controls .form-group {
+                margin-bottom: 1rem;
+            }
+
+            .log-stats {
+                padding: 0.75rem 1.25rem;
+            }
+
+            .log-stats .badge {
+                padding: 6px 10px;
+                font-size: 0.8rem;
+            }
+        }
+
+        @media (max-width: 575px) {
+            #logViewer {
+                height: 350px;
+                border-radius: 8px;
+            }
+
+            .log-stats {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .card-header h5 {
+                font-size: 1.05rem;
+            }
+
+            .pagination .page-link {
+                padding: 0.45rem 0.85rem;
+                font-size: 0.85rem;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-dark">
+    <div class="fullscreen-log-viewer">
+        <!-- 顶部控制栏 -->
+        <div class="log-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    <a href="/admin" class="btn btn-outline-light me-3 back-btn">
+                        <i class="fas fa-arrow-left"></i>
+                    </a>
+                    <h5 class="mb-0" style="color: var(--text-color);"><i class="fas fa-file-alt me-2"></i><span
+                            id="deviceLogTitle">System Log</span></h5>
+                </div>
+                <div class="d-flex align-items-center">
+                    <button id="themeToggle" class="btn btn-outline-light me-2" title="Toggle Theme">
+                        <i class="fas fa-moon" id="themeIcon"></i>
+                    </button>
+                    <button class="btn btn-outline-light btn-sm" id="refreshLogBtn">
+                        <i class="fas fa-sync-alt"></i> Refresh Log
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 日志控制面板 -->
+        <div class="log-controls mb-3">
+            <div class="row g-3 mb-2">
+                <div class="col-md-4">
+                    <div class="log-control-item">
+                        <label for="searchKeyword">Search Keywords</label>
+                        <div class="custom-search-input">
+                            <i class="fas fa-search"></i>
+                            <input type="text" class="form-control" id="searchKeyword"
+                                placeholder="Enter a keyword to search...">
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="log-control-item">
+                        <label for="logLevel">Log level</label>
+                        <select class="form-select" id="logLevel">
+                            <option value="all">All levels</option>
+                            <option value="DEBUG">DEBUG</option>
+                            <option value="INFO">INFO</option>
+                            <option value="SUCCESS">SUCCESS</option>
+                            <option value="WARNING">WARNING</option>
+                            <option value="ERROR">ERROR</option>
+                            <option value="CRITICAL">CRITICAL</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="log-control-item">
+                        <label for="logLinesPerPage">Lines per page</label>
+                        <select class="form-select" id="logLinesPerPage">
+                            <option value="50">50 lines</option>
+                            <option value="100" selected>100 lines</option>
+                            <option value="200">200 lines</option>
+                            <option value="500">500 lines</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="log-control-item">
+                        <label for="logSortOrder">Sort by</label>
+                        <select class="form-select" id="logSortOrder">
+                            <option value="newest">Latest</option>
+                            <option value="oldest" selected>Before</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12">
+                    <div class="d-flex justify-content-end">
+                        <button class="btn btn-outline-primary btn-sm me-2" id="clearFiltersBtn">
+                            <i class="fas fa-eraser"></i>Clear Filters
+                        </button>
+                        <button class="btn btn-outline-info btn-sm" id="refreshLogBtn2">
+                            <i class="fas fa-sync-alt"></i>Refresh Log
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 日志统计信息 -->
+        <div class="log-stats mb-3" id="logStats" style="display: none;">
+            <div>
+                <span class="badge bg-primary">
+                    <i class="fas fa-list-ol"></i>Displaying the first <span id="startLine">0</span> until <span
+                        id="endLine">0</span> lines
+                </span>
+                <span class="badge bg-secondary">
+                    <i class="fas fa-file-lines"></i>total <span id="totalLines">0</span> lines
+                </span>
+                <span class="badge bg-info" id="filterBadge" style="display:none">
+                    <i class="fas fa-filter"></i>Filters have been applied
+                </span>
+            </div>
+        </div>
+
+        <!-- 日志查看器 -->
+        <div id="logViewer" style="display: none; height: 500px;">
+            <div class="log-content">
+                <div class="line-numbers" id="lineNumbers"></div>
+                <div class="log-lines" id="logLines"></div>
+            </div>
+        </div>
+
+        <!-- 加载指示器 -->
+        <div id="loadingIndicator" class="loading-overlay" style="display: none;">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <h5>Loading log data</h5>
+            <p>Please wait, this may take a little while...</p>
+        </div>
+
+        <!-- 无数据消息 -->
+        <div id="noDataMessage" style="display: none;" class="alert alert-warning">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-exclamation-triangle fa-2x me-3"></i>
+                <div>
+                    <h5 class="alert-heading mb-1">Log data not found</h5>
+                    <p class="mb-0">No eligible log data was found</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 分页控件 -->
+        <div class="pagination-container">
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center" id="logPagination">
+                    <!-- 分页按钮将由JavaScript动态生成 -->
+                </ul>
+            </nav>
+        </div>
+
+        <!-- 底部工具栏 -->
+        <div class="log-footer">
+            <div class="d-flex justify-content-end">
+                <a id="downloadLogBtn" class="btn btn-success me-2">
+                    <i class="fas fa-download"></i> Download full log
+                </a>
+                <button type="button" class="btn btn-info" id="downloadTxtBtn">
+                    <i class="fas fa-file-alt"></i> Export as TXT
+                </button>
+            </div>
+        </div>
+    </div>
+    </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // 更新主题图标
+            function updateThemeIcon(theme) {
+                const themeIcon = document.getElementById('themeIcon');
+                if (themeIcon) {
+                    themeIcon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+                }
+            }
+
+            // 同步admin主题设置
+            function syncAdminTheme() {
+                const adminTheme = localStorage.getItem('admin-theme') || 'dark';
+                document.documentElement.setAttribute('data-theme', adminTheme);
+                updateThemeIcon(adminTheme);
+            }
+
+            // 监听主题变化
+            function watchThemeChanges() {
+                // 监听localStorage变化
+                window.addEventListener('storage', function (e) {
+                    if (e.key === 'admin-theme') {
+                        syncAdminTheme();
+                    }
+                });
+
+                // 定期检查主题变化（用于同一标签页内的变化）
+                setInterval(syncAdminTheme, 1000);
+            }
+
+            // 主题切换功能
+            function toggleTheme() {
+                const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+                document.documentElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('admin-theme', newTheme);
+                updateThemeIcon(newTheme);
+            }
+
+            // 初始化主题
+            syncAdminTheme();
+            watchThemeChanges();
+
+            // 主题切换按钮事件
+            const themeToggle = document.getElementById('themeToggle');
+            if (themeToggle) {
+                themeToggle.addEventListener('click', toggleTheme);
+            }
+
+            // 初始化SocketIO连接
+            const socket = io();
+
+            // 日志查看器相关元素
+            const deviceLogTitle = document.getElementById('deviceLogTitle');
+            const downloadLogBtn = document.getElementById('downloadLogBtn');
+            const downloadTxtBtn = document.getElementById('downloadTxtBtn');
+            const searchKeyword = document.getElementById('searchKeyword');
+            const logLevel = document.getElementById('logLevel');
+            const logLinesPerPage = document.getElementById('logLinesPerPage');
+            const logSortOrder = document.getElementById('logSortOrder');
+            const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+            const refreshLogBtn = document.getElementById('refreshLogBtn');
+            const refreshLogBtn2 = document.getElementById('refreshLogBtn2');
+            const logStats = document.getElementById('logStats');
+            const startLine = document.getElementById('startLine');
+            const endLine = document.getElementById('endLine');
+            const totalLines = document.getElementById('totalLines');
+            const filterBadge = document.getElementById('filterBadge');
+            const logViewer = document.getElementById('logViewer');
+            const lineNumbers = document.getElementById('lineNumbers');
+            const logLines = document.getElementById('logLines');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const noDataMessage = document.getElementById('noDataMessage');
+            const logPagination = document.getElementById('logPagination');
+
+            // 日志查看器状态变量
+            let currentDevice = '';
+            let logData = [];
+            let filteredLogData = [];
+            let currentPage = 1;
+            let totalPages = 1;
+
+            // 从URL获取设备ID
+            function getDeviceIdFromUrl() {
+                const urlParams = new URLSearchParams(window.location.search);
+                return urlParams.get('device');
+            }
+
+            // 初始化页面
+            function initializePage() {
+                // 获取设备ID
+                currentDevice = getDeviceIdFromUrl();
+
+                if (currentDevice) {
+                    // 更新页面标题
+                    deviceLogTitle.textContent = `System Log - Device ${currentDevice}`;
+
+                    // 加载日志数据
+                    loadLogData(currentDevice);
+                } else {
+                    // 如果没有设备ID，显示错误消息
+                    noDataMessage.style.display = 'block';
+                    noDataMessage.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-exclamation-triangle me-3 fa-2x"></i>
+                    <div>
+                        <h5 class="alert-heading">No Device Selected</h5>
+                        <p class="mb-0">Please select a device to view its logs.</p>
+                    </div>
+                </div>
+            `;
+                }
+            }
+
+            // 清除筛选按钮
+            clearFiltersBtn.addEventListener('click', function () {
+                clearAllFilters();
+            });
+
+            // 刷新日志按钮
+            refreshLogBtn.addEventListener('click', function () {
+                loadLogData(currentDevice);
+            });
+
+            refreshLogBtn2.addEventListener('click', function () {
+                loadLogData(currentDevice);
+            });
+
+            // 下载完整日志文件
+            downloadLogBtn.addEventListener('click', function () {
+                if (currentDevice) {
+                    window.location.href = `/admin/download_system_log?device=${currentDevice}`;
+                } else {
+                    alert('Unable to get device ID');
+                }
+            });
+
+            // 导出为TXT文件
+            downloadTxtBtn.addEventListener('click', function () {
+                exportToTxt();
+            });
+
+            // 导出为TXT文件的实现
+            function exportToTxt() {
+                if (!filteredLogData || filteredLogData.length === 0) {
+                    alert('No log content to export');
+                    return;
+                }
+
+                // 创建文件内容
+                const logText = filteredLogData.map(item => item.content).join('\n');
+
+                // 创建Blob对象
+                const blob = new Blob([logText], { type: 'text/plain' });
+
+                // 创建下载链接
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `system_log_${currentDevice || 'unknown'}_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`;
+
+                // 触发下载
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+
+                // 显示成功提示
+                const btn = downloadTxtBtn;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check me-1"></i>Exported';
+                btn.classList.add('btn-success');
+                btn.classList.remove('btn-info');
+
+                // 恢复原始按钮状态
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.classList.remove('btn-success');
+                    btn.classList.add('btn-info');
+                }, 2000);
+            }
+
+            // 按回车键应用筛选
+            searchKeyword.addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    applyFilters();
+                }
+            });
+
+            // 每页行数变化时重新应用筛选
+            logLinesPerPage.addEventListener('change', function () {
+                applyFilters();
+            });
+
+            // 排序方式变化时重新应用筛选
+            logSortOrder.addEventListener('change', function () {
+                applyFilters();
+            });
+
+            // 日志级别变化时重新应用筛选
+            logLevel.addEventListener('change', function () {
+                applyFilters();
+            });
+
+            // 键盘快捷键支持
+            document.addEventListener('keydown', function (e) {
+                // Ctrl/Cmd + R: 刷新日志
+                if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+                    e.preventDefault();
+                    if (currentDevice) {
+                        loadLogData(currentDevice);
+                    }
+                }
+
+                // Ctrl/Cmd + F: 聚焦搜索框
+                if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+                    e.preventDefault();
+                    searchKeyword.focus();
+                }
+
+                // Escape: 清除所有筛选
+                if (e.key === 'Escape') {
+                    clearAllFilters();
+                }
+            });
+
+            // 初始化页面
+            initializePage();
+
+            // 加载日志数据
+            function loadLogData(deviceId) {
+                // 重置分页
+                currentPage = 1;
+
+                // 显示加载指示器
+                loadingIndicator.style.display = 'flex';
+                logViewer.style.display = 'none';
+                logStats.style.display = 'none';
+                noDataMessage.style.display = 'none';
+                logPagination.innerHTML = '';
+
+                // 请求日志数据
+                fetch('/admin/get_system_log', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ device: deviceId })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        // 隐藏加载指示器
+                        loadingIndicator.style.display = 'none';
+
+                        if (data.success && data.log_data && data.log_data.length > 0) {
+                            // 保存日志数据，为每行添加原始行号信息
+                            logData = data.log_data.map((line, index) => {
+                                return {
+                                    content: line,
+                                    originalLineNumber: index + 1  // 原始行号（从1开始）
+                                };
+                            });
+
+                            // 更新总行数
+                            totalLines.textContent = logData.length;
+
+                            // 显示统计信息
+                            logStats.style.display = 'flex';
+
+                            // 应用筛选和排序
+                            applyFilters();
+                        } else {
+                            // 显示无数据消息
+                            noDataMessage.style.display = 'block';
+                            logViewer.style.display = 'none';
+                            logStats.style.display = 'none';
+                        }
+                    })
+                    .catch(error => {
+                        // 隐藏加载指示器
+                        loadingIndicator.style.display = 'none';
+
+                        // 显示错误消息
+                        console.error('Failed to load log request:', error);
+                        noDataMessage.style.display = 'block';
+                        noDataMessage.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-exclamation-triangle me-3 fa-2x"></i>
+                    <div>
+                        <h5 class="alert-heading">Failed to load log</h5>
+                        <p class="mb-0">Request Error: ${error.message}</p>
+                        <button class="btn btn-outline-primary btn-sm mt-2" onclick="loadLogData('${deviceId}')">
+                            <i class="fas fa-redo"></i> Retry
+                        </button>
+                    </div>
+                </div>
+            `;
+                    });
+            }
+
+            // 应用筛选和排序
+            function applyFilters() {
+                const keyword = searchKeyword.value.trim().toLowerCase();
+                const level = logLevel.value;
+                const sortOrder = logSortOrder.value;
+
+                console.log(`Application Filtering - Keywords. "${keyword}", Log level. "${level}", sort by. "${sortOrder}"`);
+
+                // 如果选择了特定日志级别，先在控制台显示几行原始日志，帮助调试
+                if (level !== 'all' && logData.length > 0) {
+                    console.log('Sample original log (first 5 lines).');
+                    for (let i = 0; i < Math.min(5, logData.length); i++) {
+                        console.log(`line ${i + 1} (original line number ${logData[i].originalLineNumber}): ${logData[i].content}`);
+                    }
+                }
+
+                // 应用筛选
+                filteredLogData = logData.filter(logItem => {
+                    const line = logItem.content;
+
+                    // 关键词筛选
+                    const matchesKeyword = keyword === '' || line.toLowerCase().includes(keyword);
+
+                    // 日志级别筛选
+                    let matchesLevel = true;
+                    if (level !== 'all') {
+                        // 根据不同的日志级别使用不同的匹配逻辑
+                        switch (level) {
+                            case 'DEBUG':
+                                matchesLevel = /\[DEBUG\]|\bDEBUG\b|\bdebug\b/i.test(line);
+                                break;
+                            case 'INFO':
+                                matchesLevel = /\[INFO\]|\bINFO\b|\binfo\b/i.test(line);
+                                break;
+                            case 'SUCCESS':
+                                matchesLevel = /\[SUCCESS\]|\bSUCCESS\b|\bsuccess\b/i.test(line);
+                                break;
+                            case 'WARNING':
+                                matchesLevel = /\[WARNING\]|\bWARNING\b|\bwarn\b|\bwarning\b/i.test(line);
+                                break;
+                            case 'ERROR':
+                                matchesLevel = /\[ERROR\]|\bERROR\b|\berror\b/i.test(line);
+                                break;
+                            case 'CRITICAL':
+                                matchesLevel = /\[CRITICAL\]|\bCRITICAL\b|\bcritical\b/i.test(line);
+                                break;
+                            default:
+                                // 默认使用包含匹配
+                                matchesLevel = line.toLowerCase().includes(level.toLowerCase());
+                        }
+
+                        // 记录匹配结果（仅对前几行进行记录，避免日志过多）
+                        if (logData.indexOf(logItem) < 10) {
+                            console.log(`lines "${line.substring(0, 50)}..." Match Level ${level}: ${matchesLevel}`);
+                        }
+                    }
+
+                    return matchesKeyword && matchesLevel;
+                });
+
+                // 应用排序
+                if (sortOrder === 'newest') {
+                    filteredLogData.reverse();
+                }
+
+                // 更新筛选器标记
+                filterBadge.style.display = (keyword !== '' || level !== 'all') ? 'inline-flex' : 'none';
+
+                // 输出筛选结果信息
+                console.log(`Filter results: filtered ${filteredLogData.length} lines from ${logData.length} lines`);
+
+                // 如果选择了特定日志级别，显示筛选后的几行日志
+                if (level !== 'all' && filteredLogData.length > 0) {
+                    console.log('Filtered log sample (first 5 lines):');
+                    for (let i = 0; i < Math.min(5, filteredLogData.length); i++) {
+                        console.log(`Line ${i + 1} (original line number ${filteredLogData[i].originalLineNumber}): ${filteredLogData[i].content}`);
+                    }
+                } else if (level !== 'all' && filteredLogData.length === 0) {
+                    console.log(`Warning: No log lines found containing level [${level}]`);
+                }
+
+                // 重置分页
+                currentPage = 1;
+
+                // 计算总页数
+                const linesPerPage = parseInt(logLinesPerPage.value);
+                totalPages = Math.ceil(filteredLogData.length / linesPerPage);
+
+                // 更新日志显示
+                updateLogDisplay();
+
+                // 更新分页控件
+                updatePagination();
+            }
+
+            // 更新日志显示
+            function updateLogDisplay() {
+                // 清空行号和日志行容器
+                lineNumbers.innerHTML = '';
+                logLines.innerHTML = '';
+
+                if (filteredLogData.length === 0) {
+                    // 显示无数据消息
+                    logViewer.style.display = 'none';
+                    noDataMessage.style.display = 'block';
+                    return;
+                }
+
+                // 计算当前页的起始和结束索引
+                const linesPerPage = parseInt(logLinesPerPage.value);
+                const startIdx = (currentPage - 1) * linesPerPage;
+                const endIdx = Math.min(startIdx + linesPerPage, filteredLogData.length);
+
+                // 更新统计信息
+                startLine.textContent = filteredLogData.length > 0 ? startIdx + 1 : 0;
+                endLine.textContent = endIdx;
+                totalLines.textContent = filteredLogData.length;
+
+                // 获取当前页的日志行
+                const currentPageLines = filteredLogData.slice(startIdx, endIdx);
+
+                // 获取搜索关键词
+                const keyword = searchKeyword.value.trim().toLowerCase();
+
+                // 清空行号容器
+                lineNumbers.innerHTML = '';
+
+                // 创建两个列用于显示不同类型的行号
+                const sequenceNumbers = document.createElement('div');
+                sequenceNumbers.className = 'sequence-numbers';
+
+                const actualNumbers = document.createElement('div');
+                actualNumbers.className = 'actual-numbers';
+
+                // 添加到行号容器
+                lineNumbers.appendChild(sequenceNumbers);
+                lineNumbers.appendChild(actualNumbers);
+
+                // 创建所有行号元素 - 显示两种行号
+                for (let i = 0; i < currentPageLines.length; i++) {
+                    const logItem = currentPageLines[i];
+
+                    // 1. 递增行号（当前页面中的序号）
+                    const sequenceSpan = document.createElement('span');
+                    sequenceSpan.textContent = i + 1;
+                    sequenceSpan.dataset.lineIndex = i;
+                    sequenceNumbers.appendChild(sequenceSpan);
+
+                    // 2. 显示原始行号（在system_log文件中的实际行号）
+                    const actualSpan = document.createElement('span');
+                    actualSpan.textContent = logItem.originalLineNumber;
+                    actualSpan.dataset.lineIndex = i;
+                    actualNumbers.appendChild(actualSpan);
+                }
+
+                // 添加日志行
+                currentPageLines.forEach((logItem, idx) => {
+                    const line = logItem.content;
+                    const logLine = document.createElement('div');
+                    logLine.className = 'log-line';
+                    logLine.dataset.lineIndex = idx; // 添加索引，便于与行号匹配
+
+                    // 根据日志级别添加样式
+                    if (line.includes('[DEBUG]')) {
+                        logLine.classList.add('log-debug');
+                    } else if (line.includes('[INFO]')) {
+                        logLine.classList.add('log-info');
+                    } else if (line.includes('[SUCCESS]')) {
+                        logLine.classList.add('log-success');
+                    } else if (line.includes('[WARNING]')) {
+                        logLine.classList.add('log-warning');
+                    } else if (line.includes('[ERROR]')) {
+                        logLine.classList.add('log-error');
+                    } else if (line.includes('[CRITICAL]')) {
+                        logLine.classList.add('log-critical');
+                    }
+
+                    // 高亮关键词
+                    if (keyword && line.toLowerCase().includes(keyword)) {
+                        // 转义HTML特殊字符
+                        let escapedLine = line
+                            .replace(/&/g, '&amp;')
+                            .replace(/</g, '&lt;')
+                            .replace(/>/g, '&gt;')
+                            .replace(/"/g, '&quot;')
+                            .replace(/'/g, '&#039;');
+
+                        // 高亮关键词
+                        const regex = new RegExp(keyword, 'gi');
+                        logLine.innerHTML = escapedLine.replace(regex, match => `<span class="highlight">${match}</span>`);
+                    } else {
+                        logLine.textContent = line;
+                    }
+
+                    logLines.appendChild(logLine);
+                });
+
+                // 显示日志查看器
+                logViewer.style.display = 'block';
+                noDataMessage.style.display = 'none';
+
+                // 设置滚动事件处理
+                setupScrollSyncEvent();
+            }
+
+            // 设置滚动同步事件
+            function setupScrollSyncEvent() {
+                // 移除之前可能存在的事件监听器
+                logLines.removeEventListener('scroll', handleLogScroll);
+
+                // 添加新的滚动事件监听器
+                logLines.addEventListener('scroll', handleLogScroll);
+
+                // 初始执行一次滚动处理，确保初始状态下行号与内容对齐
+                handleLogScroll();
+            }
+
+            // 处理日志内容滚动事件 - 完全重写的滚动同步机制
+            function handleLogScroll() {
+                // 获取日志内容的滚动位置
+                const scrollTop = logLines.scrollTop;
+
+                // 获取行号容器
+                const sequenceNumbers = lineNumbers.querySelector('.sequence-numbers');
+                const actualNumbers = lineNumbers.querySelector('.actual-numbers');
+
+                if (sequenceNumbers && actualNumbers) {
+                    // 直接设置行号容器的滚动位置，而不是使用transform
+                    // 这样可以确保行号与内容正确对齐
+                    sequenceNumbers.style.top = `${-scrollTop}px`;
+                    actualNumbers.style.top = `${-scrollTop}px`;
+
+                    // 确保行号与内容对齐 - 调整行高
+                    const logLineHeight = 21; // 与CSS中定义的行高一致
+                    const firstVisibleLineIndex = Math.floor(scrollTop / logLineHeight);
+                    const visibleLineCount = Math.ceil(logLines.clientHeight / logLineHeight);
+
+                    // 记录调试信息
+                    console.log(`Scroll position: ${scrollTop}px, First line index: ${firstVisibleLineIndex}, Visible lines: ${visibleLineCount}`);
+                } else {
+                    // 兼容旧版本
+                    lineNumbers.style.top = `${-scrollTop}px`;
+                }
+            }
+
+            // 更新分页控件
+            function updatePagination() {
+                // 清空分页控件
+                logPagination.innerHTML = '';
+
+                if (totalPages <= 1) {
+                    // 只有一页，不显示分页控件
+                    return;
+                }
+
+                // 添加"首页"按钮
+                const firstLi = document.createElement('li');
+                firstLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+                firstLi.innerHTML = `
+            <a class="page-link" href="#" aria-label="First">
+                <span aria-hidden="true">&laquo;&laquo;</span>
+            </a>
+        `;
+                if (currentPage > 1) {
+                    firstLi.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        currentPage = 1;
+                        updateLogDisplay();
+                        updatePagination();
+                    });
+                }
+                logPagination.appendChild(firstLi);
+
+                // 添加"上一页"按钮
+                const prevLi = document.createElement('li');
+                prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+                prevLi.innerHTML = `
+            <a class="page-link" href="#" aria-label="Previous">
+                <span aria-hidden="true">&laquo;</span>
+            </a>
+        `;
+                if (currentPage > 1) {
+                    prevLi.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        currentPage--;
+                        updateLogDisplay();
+                        updatePagination();
+                    });
+                }
+                logPagination.appendChild(prevLi);
+
+                // 确定要显示的页码范围
+                let startPage = Math.max(1, currentPage - 2);
+                let endPage = Math.min(totalPages, startPage + 4);
+
+                // 调整起始页，确保始终显示5个页码（如果有足够的页数）
+                if (endPage - startPage < 4 && totalPages > 5) {
+                    startPage = Math.max(1, endPage - 4);
+                }
+
+                // 添加页码按钮
+                for (let i = startPage; i <= endPage; i++) {
+                    const pageLi = document.createElement('li');
+                    pageLi.className = `page-item ${i === currentPage ? 'active' : ''}`;
+                    pageLi.innerHTML = `<a class="page-link" href="#">${i}</a>`;
+
+                    pageLi.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        currentPage = i;
+                        updateLogDisplay();
+                        updatePagination();
+                    });
+
+                    logPagination.appendChild(pageLi);
+                }
+
+                // 添加"下一页"按钮
+                const nextLi = document.createElement('li');
+                nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+                nextLi.innerHTML = `
+            <a class="page-link" href="#" aria-label="Next">
+                <span aria-hidden="true">&raquo;</span>
+            </a>
+        `;
+                if (currentPage < totalPages) {
+                    nextLi.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        currentPage++;
+                        updateLogDisplay();
+                        updatePagination();
+                    });
+                }
+                logPagination.appendChild(nextLi);
+
+                // 添加"末页"按钮
+                const lastLi = document.createElement('li');
+                lastLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+                lastLi.innerHTML = `
+            <a class="page-link" href="#" aria-label="Last">
+                <span aria-hidden="true">&raquo;&raquo;</span>
+            </a>
+        `;
+                if (currentPage < totalPages) {
+                    lastLi.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        currentPage = totalPages;
+                        updateLogDisplay();
+                        updatePagination();
+                    });
+                }
+                logPagination.appendChild(lastLi);
+            }
+
+            // 清除所有筛选条件
+            function clearAllFilters() {
+                // 重置所有筛选条件到初始状态
+                searchKeyword.value = '';
+                logLevel.value = 'all';
+                logSortOrder.value = 'oldest';
+                logLinesPerPage.value = '100';
+
+                // 显示成功提示
+                const btn = clearFiltersBtn;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check me-1"></i>Cleared';
+                btn.classList.add('btn-success');
+                btn.classList.remove('btn-outline-primary');
+
+                // 重新应用筛选（实际上是显示所有数据）
+                applyFilters();
+
+                // 恢复原始按钮状态
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.classList.remove('btn-success');
+                    btn.classList.add('btn-outline-primary');
+                }, 2000);
+            }
+
+            // 导出为TXT文件
+            function exportToTxt() {
+                if (!filteredLogData || filteredLogData.length === 0) {
+                    alert('No log content to export');
+                    return;
+                }
+
+                // 将日志行连接成文本
+                const logText = filteredLogData.map(item => item.content).join('\n');
+
+                // 创建Blob对象
+                const blob = new Blob([logText], { type: 'text/plain' });
+
+                // 创建下载链接
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `device_log_${currentDevice}_${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
+
+                // 触发下载
+                document.body.appendChild(a);
+                a.click();
+
+                // 清理
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 0);
+            }
+
+            // 初始化 - 从URL获取设备ID并加载日志
+            function initialize() {
+                const deviceId = getDeviceIdFromUrl();
+                if (deviceId) {
+                    currentDevice = deviceId;
+                    deviceLogTitle.textContent = `Device Log: ${deviceId}`;
+                    downloadLogBtn.href = `/admin/download_system_log?device=${deviceId}`;
+                    loadLogData(deviceId);
+                } else {
+                    // 没有设备ID，显示提示信息
+                    loadingIndicator.style.display = 'none';
+                    noDataMessage.style.display = 'block';
+                    noDataMessage.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-exclamation-triangle me-3 fa-2x"></i>
+                    <div>
+                        <h5 class="alert-heading">No Device Specified</h5>
+                        <p class="mb-0">Please select a device from the device management page to view its logs.</p>
+                    </div>
+                </div>
+            `;
+                }
+            }
+
+            // 初始化页面
+            initialize();
+        });
+    </script>
+</body>
+
+</html>

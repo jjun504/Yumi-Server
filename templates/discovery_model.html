@@ -1,0 +1,1545 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="{{ url_for('static', filename='Small_logo.png') }}" type="image/png">
+    <title>Device Discovery</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap"
+        rel="stylesheet">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    {% include 'includes/header2_styles.html' %}
+
+    <style>
+        :root {
+            --background-color: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            color: var(--text-color);
+            padding-top: 60px;
+        }
+
+        @keyframes gradientBG {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0px) rotate(0deg);
+            }
+
+            50% {
+                transform: translateY(-20px) rotate(5deg);
+            }
+
+            100% {
+                transform: translateY(0px) rotate(0deg);
+            }
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 0.8;
+            }
+
+            50% {
+                transform: scale(1.1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 0.8;
+            }
+        }
+
+        .app-header {
+            background: var(--dark);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            color: var(--light-text);
+            text-align: left;
+            position: relative;
+            box-shadow: var(--header-shadow);
+            overflow: hidden;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            flex-direction: column;
+            min-height: 180px;
+        }
+
+        .app-header::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23ffffff' fill-opacity='0.1' fill-rule='evenodd'/%3E%3C/svg%3E"),
+                linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 100%);
+            opacity: 0.5;
+        }
+
+        .floating-circles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .circle {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(1px);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
+        }
+
+        .circle-1 {
+            width: 80px;
+            height: 80px;
+            top: -20px;
+            left: 10%;
+            animation: float 7s ease-in-out infinite;
+        }
+
+        .circle-2 {
+            width: 120px;
+            height: 120px;
+            top: 20px;
+            right: 15%;
+            animation: float 9s ease-in-out infinite 1s;
+        }
+
+        .circle-3 {
+            width: 60px;
+            height: 60px;
+            bottom: -20px;
+            left: 20%;
+            animation: float 8s ease-in-out infinite 0.5s;
+        }
+
+        .circle-4 {
+            width: 50px;
+            height: 50px;
+            bottom: 10px;
+            right: 30%;
+            animation: float 6s ease-in-out infinite 1.5s;
+        }
+
+        .glow {
+            position: absolute;
+            bottom: -50px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.3);
+            filter: blur(40px);
+            border-radius: 100%;
+            animation: pulse 4s infinite;
+            z-index: 1;
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 2;
+            width: 95%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 15px 30px 10px;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .header-left {
+            display: flex;
+            flex-direction: column;
+            margin: 15px 0px
+        }
+
+        .app-title {
+            font-size: 1.8rem;
+            color: var(--white);
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+
+        .app-subtitle {
+            color: var(--white);
+            font-size: 1rem;
+            font-weight: 400;
+            opacity: 0.9;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+
+        .breadcrumb-container {
+            padding: 0;
+            margin-bottom: 10px;
+            margin-top: 0;
+            position: absolute;
+            z-index: 10;
+            width: auto;
+            top: -20px;
+            left: 30px;
+        }
+
+        .breadcrumb {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            position: absolute;
+            top: 100px;
+            left: -25px;
+            min-width: 200px;
+        }
+
+        .breadcrumb li {
+            display: inline-flex;
+            align-items: center;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .breadcrumb li a {
+            color: rgba(255, 255, 255, 0.9);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .breadcrumb li a i {
+            text-decoration: none;
+            margin-right: 4px;
+            font-size: 0.8rem;
+        }
+
+        .breadcrumb li a:hover {
+            color: #fff;
+            text-decoration: none;
+        }
+
+        .breadcrumb li a:hover i {
+            transform: translateX(-2px);
+        }
+
+        .breadcrumb li.active {
+            color: #fff;
+            font-weight: 500;
+        }
+
+        .breadcrumb li:not(:last-child)::after {
+            content: '>';
+            margin: 0 6px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .header-actions {
+            color: var(--white);
+            display: flex;
+            z-index: 5;
+            margin-top: auto;
+            align-self: flex-start;
+            padding: 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 15px;
+            width: 100%;
+        }
+
+        .header-button-group {
+            margin-left: 30px;
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        .header-button {
+            padding: 10px 18px;
+            border-radius: 8px 8px 0 0;
+            font-size: 0.9rem;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            transition: all var(--transition-speed) ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+
+        .header-button-primary {
+            background: rgba(255, 255, 255, 0.2);
+            color: var(--light-text);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-button-primary:hover {
+            background: rgba(255, 255, 255, 0.9);
+            color: var(--primary-color);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+        }
+
+        .header-button-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: var(--light-text);
+            backdrop-filter: blur(5px);
+        }
+
+        .header-button-secondary:hover {
+            background: rgba(255, 255, 255, 0.9);
+            color: var(--primary-color);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+        }
+
+
+        .discovery-app {
+            max-width: 1400px;
+            padding: 0 20px;
+        }
+
+        .devices-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 25px;
+            margin: 30px 0;
+        }
+
+        @media (max-width: 1600px) {
+            .devices-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .devices-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 900px) {
+            .devices-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .devices-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .device-card {
+            background: #fff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+            transition: transform 0.3s;
+            position: relative;
+            min-height: 80px;
+            background-image: url("{{ url_for('static', filename='card.png') }}");
+            background-size: cover;
+            background-position: center top;
+        }
+
+        .device-info {
+            padding: 6px 11px;
+            position: relative;
+            z-index: 2;
+            background: rgb(252 248 255 / 58%);
+            backdrop-filter: blur(3px);
+            border-radius: 10px;
+            margin: 11px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgb(255, 255, 255);
+        }
+
+        /* 设备标签样式 */
+        .device-label {
+            position: absolute;
+            top: -10px;
+            right: 10px;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            z-index: 3;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 已拥有设备标签样式 */
+        .device-label.owned {
+            background-color: #4cd964;
+            color: white;
+        }
+
+        /* 新设备标签样式 */
+        .device-label.new {
+            background-color: #f72585;
+            color: white;
+        }
+
+        /* 设备卡片样式 */
+        .device-name {
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 1.3rem;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+
+        .device-meta {
+            color: #555;
+            font-size: 0.95rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .device-id {
+            font-weight: 500;
+            max-width: 60%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .device-status-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 5px;
+        }
+
+        .device-status {
+            font-weight: 500;
+            border-radius: 4px;
+            padding: 2px 8px;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+        }
+
+        /* 不同设备状态的样式 */
+        .device-status.online {
+            color: #28a745;
+            border: 1px solid #c3e6cb;
+            background-color: #d4edda;
+        }
+
+        .device-status.available {
+            color: #007bff;
+            border: 1px solid #b3d7ff;
+            background-color: #e3f2fd;
+        }
+
+        .device-status.offline {
+            color: #6c757d;
+            border: 1px solid #dee2e6;
+            background-color: #f8f9fa;
+        }
+
+        .device-status.busy {
+            color: #ffc107;
+            border: 1px solid #ffeaa7;
+            background-color: #fff3cd;
+        }
+
+        .device-status.error {
+            color: #dc3545;
+            border: 1px solid #f5c6cb;
+            background-color: #f8d7da;
+        }
+
+        .device-status.connecting {
+            color: #17a2b8;
+            border: 1px solid #bee5eb;
+            background-color: #d1ecf1;
+            animation: pulse-status 2s infinite;
+        }
+
+        @keyframes pulse-status {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .device-ip {
+            white-space: nowrap;
+            font-size: 0.85rem;
+        }
+
+        .device-actions {
+            display: flex;
+            gap: 5px;
+            border-top: 1px solid #eee;
+        }
+
+        .device-action-button {
+            flex: 1;
+            padding: 15px 10px;
+            text-align: center;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 700;
+            transition: all 0.25s;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 默认按钮样式（Available状态） */
+        .device-action-button.available {
+            background: #e5eefd;
+            color: #4850b1;
+        }
+
+        .device-action-button.available:hover {
+            color: var(--text-color);
+            background: #d3d7ee;
+        }
+
+        .device-action-button.online {
+            background: linear-gradient(135deg, #94b2ef 0%, #cafff2 100%);
+            color: #00810a;
+            box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+        }
+
+        .device-action-button.online:hover {
+            background: linear-gradient(135deg, #86abf4 0%, #9cd2c5 100%);
+            /* transform: translateY(-1px); */
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+        }
+
+        /* Offline状态按钮 - 灰色，禁用 */
+        .device-action-button.offline {
+            background: #f8f9fa;
+            color: #6c757d;
+            cursor: not-allowed;
+            border: 1px solid #dee2e6;
+        }
+
+        .device-action-button.offline:hover {
+            background: #f8f9fa;
+            color: #6c757d;
+            transform: none;
+        }
+
+        /* Busy状态按钮 - 黄色 */
+        .device-action-button.busy {
+            background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+            color: #212529;
+            box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
+        }
+
+        .device-action-button.busy:hover {
+            background: linear-gradient(135deg, #e0a800 0%, #dc6545 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
+        }
+
+        /* Error状态按钮 - 红色 */
+        .device-action-button.error {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+            box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+        }
+
+        .device-action-button.error:hover {
+            background: linear-gradient(135deg, #c82333 0%, #bd2130 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+        }
+
+        /* Connecting状态按钮 - 蓝色，带动画 */
+        .device-action-button.connecting {
+            background: linear-gradient(135deg, #17a2b8 0%, #007bff 100%);
+            color: white;
+            box-shadow: 0 2px 8px rgba(23, 162, 184, 0.3);
+            animation: pulse-button 2s infinite;
+        }
+
+        .device-action-button.connecting:hover {
+            background: linear-gradient(135deg, #138496 0%, #0056b3 100%);
+        }
+
+        @keyframes pulse-button {
+            0% {
+                box-shadow: 0 2px 8px rgba(23, 162, 184, 0.3);
+            }
+
+            50% {
+                box-shadow: 0 4px 16px rgba(23, 162, 184, 0.6);
+            }
+
+            100% {
+                box-shadow: 0 2px 8px rgba(23, 162, 184, 0.3);
+            }
+        }
+
+        /* 按钮图标样式 */
+        .device-action-button i {
+            margin-right: 5px;
+            font-size: 1rem;
+        }
+
+        .device-action-button:not(:last-child) {
+            border-right: 1px solid #eee;
+        }
+
+        .status-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--success-color);
+            z-index: 3;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #6c757d;
+            font-size: 1.1rem;
+            padding: 40px 0;
+        }
+
+        .auth-container {
+            background: #fff;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            max-width: 600px;
+            margin: 30px auto 0;
+            text-align: center;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+
+        .password-input {
+            flex: 1;
+            max-width: 300px;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 50px;
+            font-size: 1rem;
+            transition: 0.3s;
+        }
+
+        .password-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(64, 134, 242, 0.2);
+        }
+
+        .status-message {
+            min-height: 20px;
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: var(--primary-color);
+        }
+
+        .section-divider {
+            margin: 30px 0;
+            border-top: 1px dashed #ddd;
+            position: relative;
+        }
+
+        .section-divider span {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #f5f7fa;
+            padding: 0 15px;
+            color: #999;
+            font-size: 0.9rem;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            visibility: hidden;
+            opacity: 0;
+            transition: visibility 0s linear 0.25s, opacity 0.25s 0s;
+            backdrop-filter: blur(3px);
+        }
+
+        .modal-overlay.active {
+            visibility: visible;
+            opacity: 1;
+            transition: visibility 0s linear 0s, opacity 0.25s 0s;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 420px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            position: relative;
+            transform: translateY(-20px) scale(0.95);
+            transition: transform 0.3s ease;
+            background-image: linear-gradient(to bottom, #f9fbff 0%, #fff 100%);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: translateY(0) scale(1);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eef2f9;
+        }
+
+        .modal-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--text-color);
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            letter-spacing: -0.3px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .modal-title::before {
+            content: "";
+            display: inline-block;
+            width: 6px;
+            height: 20px;
+            background: linear-gradient(to bottom, var(--primary-color), var(--accent-color));
+            border-radius: 3px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #999;
+            transition: all 0.2s;
+            line-height: 1;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        .modal-close:hover {
+            color: #333;
+            background-color: #f5f5f5;
+            transform: rotate(90deg);
+        }
+
+        .modal-body {
+            margin-bottom: 25px;
+        }
+
+        .device-info-container {
+            background-color: #f8faff;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid #edf1fa;
+        }
+
+        .device-info-title {
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--primary-color);
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .device-info-title::before {
+            content: "\f233";
+            font-family: 'boxicons';
+            font-weight: normal;
+            font-size: 1.1rem;
+        }
+
+        .device-info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f0f3fa;
+            align-items: center;
+        }
+
+        .device-info-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0px;
+            padding-bottom: 0px;
+        }
+
+        .device-info-item span:first-child {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .device-info-item span:last-child {
+            font-weight: 500;
+            background-color: #f0f7ff;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            color: #333;
+            max-width: 220px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            border: 1px solid #e6effd;
+        }
+
+        .password-modal-form {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .input-container {
+            position: relative;
+        }
+
+        .input-container i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #aaa;
+            font-size: 1.1rem;
+        }
+
+        .modal-input {
+            padding: 14px 15px 14px 42px;
+            border: 1px solid #e6effd;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s;
+            width: 100%;
+            background-color: #f8faff;
+            color: #333;
+        }
+
+        .modal-input::placeholder {
+            color: #aaa;
+            font-size: 0.95rem;
+        }
+
+        .modal-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(64, 134, 242, 0.15);
+            background-color: #fff;
+        }
+
+        .show-password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            /* color: #7a9fdb; */
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 6px 8px;
+            border-radius: 6px;
+            transition: all 0.2s;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+
+        .show-password-toggle i {
+            font-size: 1.35rem;
+        }
+
+        .modal-message {
+            font-size: 0.9rem;
+            margin-top: 8px;
+            min-height: 20px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .modal-btn {
+            padding: 12px 0;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            transition: all 0.25s;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .modal-btn-primary {
+            background: linear-gradient(to right, var(--primary-color), var(--accent-color));
+            color: var(--light-text);
+            box-shadow: 0 5px 15px rgba(64, 134, 242, 0.3);
+        }
+
+        .modal-btn-primary:hover {
+            background: linear-gradient(to right, #3a73d8, #2b57cc);
+            transform: translateY(-2px);
+            box-shadow: 0 7px 18px rgba(64, 134, 242, 0.4);
+        }
+
+        .modal-btn-secondary {
+            background: #f5f7fa;
+            color: #666;
+            border: 1px solid #eee;
+        }
+
+        .modal-btn-secondary:hover {
+            background: #edf1fa;
+            color: #333;
+        }
+
+        .floating-action-buttons {
+            display: none;
+        }
+
+        .bottom-gradient {
+            display: none;
+        }
+
+        /* Back button styles */
+        .back-button {
+            position: absolute;
+            top: 70px;
+            left: 20px;
+            z-index: 1000;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            overflow: hidden;
+            background: rgba(76, 175, 80, 0.8);
+            backdrop-filter: blur(10px);
+        }
+
+        .back-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: -1;
+        }
+
+        .back-button:hover {
+            /* transform: translateY(-5px); */
+            /* box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3); */
+            color: var(--primary-color);
+            transform: scale(1.2);
+        }
+
+        .back-button:hover::before {
+            opacity: 1;
+        }
+
+        .back-button i {
+            font-size: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+
+        @media (max-width: 768px) {
+            .back-button {
+                top: 130px; /* Below the header on mobile */
+                left: 15px;
+                width: 40px;
+                height: 40px;
+            }
+
+            .back-button i {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    {% include 'includes/header2.html' %}
+
+    <!-- Back Button -->
+    <a href="{{ url_for('index') }}" class="back-button">
+        <i class="fas fa-arrow-left"></i>
+    </a>
+
+    <header class="app-header">
+        <div class="floating-circles">
+            <div class="circle circle-1"></div>
+            <div class="circle circle-2"></div>
+            <div class="circle circle-3"></div>
+            <div class="circle circle-4"></div>
+            <div class="glow"></div>
+        </div>
+        <div class="header-content">
+            <div class="breadcrumb-container">
+                <ul class="breadcrumb">
+                    <li><a href="{{ url_for('index') }}"><i class="fas fa-home"></i>Home</a></li>
+                    <li class="active">Device Discovery</li>
+                </ul>
+            </div>
+            <div class="header-left">
+                <h1 class="app-title">Smart Device Discovery</h1>
+                <p class="app-subtitle">Discover and connect to your smart devices</p>
+            </div>
+        </div>
+
+        <div class="header-actions">
+            <div class="header-button-group">
+                <button id="btnScan" class="header-button header-button-primary" onclick="startDiscovery()">
+                    <span class="scan-icon"><i class='bx bx-search'></i></span> Scan Devices
+                </button>
+                <button id="btnClear" class="header-button header-button-secondary" onclick="clearDevices()">
+                    <span class="clear-icon"><i class='bx bxs-trash'></i></span> Clear List
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="section-divider">
+        <span>Available Devices</span>
+    </div>
+
+    <main class="discovery-app">
+        <div class="devices-grid" id="devicesGrid">
+        </div>
+    </main>
+
+
+    <div class="modal-overlay" id="passwordModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Device Connection</h3>
+                <button class="modal-close" id="closePasswordModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="device-info-container">
+                    <div class="device-info-title"><i class='bx bx-devices'></i>Device Information</div>
+                    <div class="device-info-item">
+                        <span>Device ID</span>
+                        <span id="modalDeviceId">--</span>
+                    </div>
+                    <div class="device-info-item">
+                        <span>IP Address</span>
+                        <span id="modalDeviceIp">--</span>
+                    </div>
+                </div>
+
+                <form class="password-modal-form" id="passwordModalForm">
+                    <div class="input-container">
+                        <i class='bx bx-lock-alt'></i>
+                        <input type="password" id="modalPasswordInput" class="modal-input"
+                            placeholder="Please enter device password" required>
+                        <button type="button" class="show-password-toggle" id="togglePassword">
+                            <i class='bx bx-hide'></i>
+                        </button>
+                    </div>
+                    <div class="modal-message" id="modalStatusMessage"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-secondary" id="cancelPasswordBtn">
+                    <i class='bx bx-x'></i>Cancel
+                </button>
+                <button class="modal-btn modal-btn-primary" id="submitPasswordBtn">
+                    <i class='bx bx-link'></i>Connect
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 初始化与服务器的 socket 连接
+        const socket = io();
+        let selectedDevice = null;
+        let selectedDeviceIp = null;
+        let deviceList = {};
+
+        // 监听服务器发来的设备状态更新事件
+        socket.on('device_update', (data) => {
+            console.log('Received device data:', data);
+            updateDeviceInList(data);
+        });
+
+        // 监听服务器发来的设备列表更新事件
+        socket.on('devices_list', (data) => {
+            // 清空当前设备列表
+            deviceList = {};
+            document.getElementById('devicesGrid').innerHTML = '';
+            // 添加所有设备到列表
+            if (data.devices && data.devices.length > 0) {
+                data.devices.forEach(device => {
+                    updateDeviceInList(device);
+                });
+            }
+        });
+
+        // 更新设备列表中的设备
+        function updateDeviceInList(data) {
+            // 确保设备有ID
+            if (!data.id) return;
+
+            // 过滤逻辑：正确的显示条件
+            const isOwned = data.owned === true;
+            const isOnline = data.online === true || data.status === 'online';
+            const hasNoUserId = !data.user_id || data.user_id === null || data.user_id === "";
+
+            // 添加详细的调试信息
+            console.log(`设备 ${data.id} 过滤检查:`, {
+                owned: data.owned,
+                online: data.online,
+                status: data.status,
+                user_id: data.user_id,
+                isOwned: isOwned,
+                isOnline: isOnline,
+                hasNoUserId: hasNoUserId
+            });
+
+            // 显示条件：
+            // 1. 用户拥有的设备（在线和离线都显示）
+            // 2. 在线且没有user_id绑定的设备（可以被认领）
+            const shouldShow = isOwned || (isOnline && hasNoUserId);
+
+            if (!shouldShow) {
+                console.log(`跳过显示设备 ${data.id}: 不符合显示条件 (owned=${isOwned}, online=${isOnline}, hasNoUserId=${hasNoUserId})`);
+                return;
+            }
+
+            console.log(`显示设备 ${data.id}: owned=${isOwned}, online=${isOnline}, hasNoUserId=${hasNoUserId}`);
+
+            const devicesGridElement = document.getElementById('devicesGrid');
+            const existingDevice = devicesGridElement.querySelector(`[data-device-id="${data.id}"]`);
+
+            // 更新设备列表对象
+            deviceList[data.id] = data;
+
+            // 获取设备状态文本和CSS类
+            let statusText = 'Available';
+            let statusClass = 'available';
+
+            if (data.status) {
+                statusText = data.status.charAt(0).toUpperCase() + data.status.slice(1);
+                statusClass = data.status.toLowerCase();
+            } else if (data.online === false) {
+                statusText = 'Offline';
+                statusClass = 'offline';
+            }
+
+            // 确保状态类是有效的
+            const validStatusClasses = ['online', 'available', 'offline', 'busy', 'error', 'connecting'];
+            if (!validStatusClasses.includes(statusClass)) {
+                statusClass = 'available';
+            }
+
+            // 检查设备是否已被用户拥有（使用之前定义的变量）
+            // const isOwned = data.owned === true; // 已在上面定义
+
+            // 设置设备卡片的样式类
+            const cardClass = isOwned ? 'device-card owned' : 'device-card new';
+
+            // 设置连接按钮文本
+            const connectBtnText = isOwned ? 'Connect' : 'Claim Device';
+
+            // 如果设备已存在，更新其状态
+            if (existingDevice) {
+                // 更新设备卡片类名
+                existingDevice.className = cardClass;
+
+                // 更新IP地址
+                const deviceIpElement = existingDevice.querySelector('.device-ip');
+                if (deviceIpElement && data.ip) {
+                    deviceIpElement.textContent = `IP: ${data.ip}`;
+                }
+
+                // 更新设备状态
+                const deviceStatusElement = existingDevice.querySelector('.device-status');
+                if (deviceStatusElement) {
+                    deviceStatusElement.textContent = statusText;
+                    // 移除所有状态类
+                    deviceStatusElement.className = 'device-status';
+                    // 添加新的状态类
+                    deviceStatusElement.classList.add(statusClass);
+                }
+
+                // 更新按钮状态和样式
+                const connectBtn = existingDevice.querySelector('.connect-btn');
+                if (connectBtn) {
+                    // 移除所有状态类
+                    connectBtn.className = 'device-action-button connect-btn';
+                    // 添加新的状态类
+                    connectBtn.classList.add(statusClass);
+
+                    // 根据状态设置按钮文本和功能
+                    if (statusClass === 'offline') {
+                        connectBtn.disabled = true;
+                        connectBtn.innerHTML = '<i class="bx bx-wifi-off"></i>Offline';
+                    } else if (statusClass === 'busy') {
+                        connectBtn.disabled = true;
+                        connectBtn.innerHTML = '<i class="bx bx-time"></i>Busy';
+                    } else if (statusClass === 'error') {
+                        connectBtn.disabled = false;
+                        connectBtn.innerHTML = '<i class="bx bx-error"></i>Retry';
+                    } else if (statusClass === 'connecting') {
+                        connectBtn.disabled = true;
+                        connectBtn.innerHTML = '<i class="bx bx-loader bx-spin"></i>Connecting...';
+                    } else {
+                        connectBtn.disabled = false;
+                        connectBtn.innerHTML = '<i class="bx bx-plug"></i>' + (isOwned ? 'Connect' : 'Add Device');
+                    }
+                }
+
+                // 更新设备名称（如果有）
+                if (data.name) {
+                    const deviceNameElement = existingDevice.querySelector('.device-name');
+                    if (deviceNameElement) {
+                        deviceNameElement.textContent = data.name;
+                    }
+                }
+
+                // 更新设备模型（如果有）
+                if (data.model) {
+                    const deviceIdElement = existingDevice.querySelector('.device-id');
+                    if (deviceIdElement) {
+                        deviceIdElement.textContent = `${data.id} (${data.model})`;
+                    }
+                }
+
+                // 更新设备标签（如果是新设备）
+                const deviceLabel = existingDevice.querySelector('.device-label');
+                if (deviceLabel) {
+                    deviceLabel.textContent = isOwned ? 'My Device' : 'New Device';
+                    deviceLabel.className = `device-label ${isOwned ? 'owned' : 'new'}`;
+                }
+
+                // 注意：按钮状态已在上面的代码中处理，这里不需要重复处理
+            } else {
+                // 创建新设备卡片（无论设备是否在线）
+                const deviceCard = document.createElement('div');
+                deviceCard.className = cardClass;
+                deviceCard.dataset.deviceId = data.id;
+                deviceCard.dataset.deviceIp = data.ip || '';
+
+                // 设备名称，如果没有则使用ID
+                const deviceName = data.name || data.id;
+
+                // 设备ID显示，如果有模型则显示模型
+                const deviceIdDisplay = data.model ? `${data.id} (${data.model})` : data.id;
+
+                // 根据状态设置按钮文本和图标
+                let buttonText = '';
+                let buttonIcon = '';
+                let buttonDisabled = false;
+
+                if (statusClass === 'offline') {
+                    buttonText = 'Offline';
+                    buttonIcon = 'bx-wifi-off';
+                    buttonDisabled = true;
+                } else if (statusClass === 'busy') {
+                    buttonText = 'Busy';
+                    buttonIcon = 'bx-time';
+                    buttonDisabled = true;
+                } else if (statusClass === 'error') {
+                    buttonText = 'Retry';
+                    buttonIcon = 'bx-error';
+                    buttonDisabled = false;
+                } else if (statusClass === 'connecting') {
+                    buttonText = 'Connecting...';
+                    buttonIcon = 'bx-loader bx-spin';
+                    buttonDisabled = true;
+                } else {
+                    buttonText = isOwned ? 'Connect' : 'Add Device';
+                    buttonIcon = 'bx-plug';
+                    buttonDisabled = false;
+                }
+
+                deviceCard.innerHTML = `
+                    <div class="device-info">
+                        <span class="device-label ${isOwned ? 'owned' : 'new'}">${isOwned ? 'My Device' : 'New Device'}</span>
+                        <div class="device-name">${deviceName}</div>
+                        <div class="device-meta">
+                            <div class="device-id">${deviceIdDisplay}</div>
+                            <div class="device-status-container">
+                                <span class="device-status ${statusClass}">${statusText}</span>
+                                <span class="device-ip">IP: ${data.ip || 'Unknown'}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="device-actions">
+                        <button class="device-action-button connect-btn ${statusClass}" ${buttonDisabled ? 'disabled' : ''}>
+                            <i class="bx ${buttonIcon}"></i>${buttonText}
+                        </button>
+                    </div>
+                    <div class="status-badge"></div>
+                `;
+
+                // 为按钮添加事件监听器（仅对可用状态的设备）
+                const connectBtn = deviceCard.querySelector('.connect-btn');
+                if (!buttonDisabled && statusClass !== 'offline' && statusClass !== 'busy' && statusClass !== 'connecting') {
+                    connectBtn.addEventListener('click', () => {
+                        selectedDevice = data.id;
+                        selectedDeviceIp = data.ip;
+                        showPasswordModal(data.id, data.ip);
+                    });
+                }
+
+                devicesGridElement.appendChild(deviceCard);
+
+                // 如果有empty-state元素，隐藏它
+                const emptyState = devicesGridElement.querySelector('.empty-state');
+                if (emptyState) {
+                    emptyState.style.display = 'none';
+                }
+            }
+        }
+
+        // 发起设备发现请求
+        function startDiscovery() {
+            // 清空设备列表
+            document.getElementById('devicesGrid').innerHTML = "";
+            deviceList = {};
+            selectedDevice = null;
+            selectedDeviceIp = null;
+            closePasswordModal();
+
+            // 先请求当前已知设备列表
+            socket.emit('request_devices_list');
+
+            // 然后触发设备发现
+            setTimeout(() => {
+                socket.emit('trigger_discovery');
+            }, 100);
+        }
+
+        // 清空设备列表
+        function clearDevices() {
+            document.getElementById('devicesGrid').innerHTML = ""
+            deviceList = {};
+            selectedDevice = null;
+            selectedDeviceIp = null;
+            closePasswordModal();
+        }
+
+
+
+        function showPasswordModal(deviceId, deviceIp) {
+            const modal = document.getElementById('passwordModal');
+            document.getElementById('modalDeviceId').textContent = deviceId;
+            document.getElementById('modalDeviceIp').textContent = deviceIp;
+            document.getElementById('modalPasswordInput').value = '';
+            document.getElementById('modalStatusMessage').textContent = '';
+            document.getElementById('modalStatusMessage').style.color = '';
+
+            modal.classList.add('active');
+            document.getElementById('modalPasswordInput').focus();
+        }
+
+        function closePasswordModal() {
+            const modal = document.getElementById('passwordModal');
+            modal.classList.remove('active');
+        }
+
+
+
+        // 用户点击"Connect"后，提交目标设备及密码进行验证
+        function connectDevice() {
+            const password = document.getElementById('modalPasswordInput').value;
+            const statusMsg = document.getElementById('modalStatusMessage');
+            if (!password) {
+                statusMsg.textContent = 'Please enter device password';
+                statusMsg.style.color = '#f72585';
+                return;
+            }
+
+            statusMsg.textContent = 'Connecting to device...';
+            statusMsg.style.color = '#4086f2';
+
+            // 使用新的设备连接API
+            socket.emit('connect_device', {
+                device_id: selectedDevice,
+                password: password
+            });
+        }
+
+        // 处理服务器认证返回结果
+        socket.on('connection_result', (data) => {
+            const statusElement = document.getElementById('modalStatusMessage');
+
+            if (data.success) {
+                statusElement.textContent = '✔ Authentication successful! Redirecting...';
+                statusElement.style.color = '#4cc9f0';
+                setTimeout(() => {
+                    window.location.href = data.redirect;  // Redirect to /control page
+                }, 1500);
+            } else {
+                statusElement.textContent = `✖ Connection failed: ${data.message}`;
+                statusElement.style.color = '#f72585';
+                document.getElementById('modalPasswordInput').value = '';
+                document.getElementById('modalPasswordInput').focus();
+            }
+        });
+
+        // 监听发现触发结果
+        socket.on('discovery_triggered', (data) => {
+            if (data.status === 'success') {
+                document.getElementById('modalStatusMessage').textContent = 'Discovery broadcast sent. Waiting for devices to respond...';
+            } else {
+                document.getElementById('modalStatusMessage').textContent = 'Failed to send discovery broadcast.';
+                document.getElementById('modalStatusMessage').style.color = '#f72585';
+            }
+        });
+
+        // 按钮事件已在HTML中通过onclick属性绑定
+
+        document.getElementById('closePasswordModal').addEventListener('click', closePasswordModal);
+        document.getElementById('cancelPasswordBtn').addEventListener('click', closePasswordModal);
+        document.getElementById('submitPasswordBtn').addEventListener('click', connectDevice);
+
+        document.getElementById('modalPasswordInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                connectDevice();
+            }
+        });
+
+        document.getElementById('passwordModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('passwordModal')) {
+                closePasswordModal();
+            }
+        });
+
+        // 添加密码可见性切换功能
+        document.getElementById('togglePassword').addEventListener('click', function () {
+            const passwordInput = document.getElementById('modalPasswordInput');
+            const icon = this.querySelector('i');
+
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.classList.remove('bx-hide');
+                icon.classList.add('bx-show');
+            } else {
+                passwordInput.type = 'password';
+                icon.classList.remove('bx-show');
+                icon.classList.add('bx-hide');
+            }
+        });
+
+        // 页面加载时自动扫描设备
+        window.onload = function () {
+            // 只请求当前已知设备列表，不立即触发发现
+            socket.emit('request_devices_list');
+
+            // 延迟1秒后再触发设备发现，避免同时发送多个请求
+            setTimeout(() => {
+                socket.emit('trigger_discovery');
+            }, 1000);
+        };
+    </script>
+
+</body>
+
+</html>

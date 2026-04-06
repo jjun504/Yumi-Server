@@ -1,0 +1,1097 @@
+{% extends "admin_base.html" %}
+
+{% block title %}Manage Users{% endblock %}
+
+{% block header_title %}Manage Users{% endblock %}
+
+{% block manage_users_active %}active{% endblock %}
+
+{% block page_css %}
+<style>
+    /* User management specific styles */
+    .dashboard-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background-color: var(--bg-white);
+        border-radius: var(--border-radius);
+        padding: 1.5rem;
+        box-shadow: var(--shadow);
+        transition: var(--transition);
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .stat-card i {
+        font-size: 2.5rem;
+        color: var(--primary-color);
+        margin-bottom: 1rem;
+    }
+
+    .stat-card h3 {
+        font-size: 1.8rem;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+    }
+
+    .stat-card p {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+
+    .user-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+    }
+
+    .user-table th,
+    .user-table td {
+        padding: 1rem;
+        text-align: left;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .user-table th {
+        background-color: var(--primary-light);
+        color: white;
+        font-weight: 600;
+    }
+
+    .user-table tr:hover {
+        background-color: var(--bg-light);
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .btn {
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        border: none;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+    }
+
+    .btn-view {
+        background-color: var(--success-color);
+        color: white;
+    }
+
+    .btn-edit {
+        background-color: var(--primary-color);
+        color: white;
+    }
+
+    .btn-delete {
+        background-color: var(--danger-color);
+        color: white;
+    }
+
+    .btn:hover {
+        filter: brightness(1.1);
+    }
+
+    .search-bar {
+        display: flex;
+        margin-bottom: 1.5rem;
+    }
+
+    .search-bar input {
+        flex: 1;
+        padding: 0.75rem 1rem;
+        border: 1px solid var(--input-border);
+        border-radius: var(--border-radius) 0 0 var(--border-radius);
+        font-size: 1rem;
+        outline: none;
+        background-color: var(--input-bg);
+        color: var(--text-color);
+    }
+
+    .search-bar button {
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 0 1.5rem;
+        border-radius: 0 var(--border-radius) var(--border-radius) 0;
+        cursor: pointer;
+    }
+
+    .status {
+        padding: 0.25rem 0.5rem;
+        border-radius: 50px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        text-align: center;
+    }
+
+    .status-active {
+        background-color: rgba(66, 184, 131, 0.15);
+        color: var(--success-color);
+    }
+
+    .status-inactive {
+        background-color: rgba(231, 76, 60, 0.15);
+        color: var(--danger-color);
+    }
+
+    .pagination {
+        display: flex;
+        justify-content: center;
+        margin-top: 2rem;
+    }
+
+    .pagination button {
+        background-color: var(--bg-white);
+        border: 1px solid var(--border-color);
+        padding: 0.5rem 1rem;
+        margin: 0 0.25rem;
+        cursor: pointer;
+        color: var(--text-color);
+    }
+
+    .pagination button.active {
+        background-color: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    /* Modal styles */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.4);
+    }
+
+    .modal-content {
+        position: relative;
+        background-color: var(--bg-white);
+        margin: 5% auto;
+        padding: 0;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        width: 80%;
+        max-width: 700px;
+        animation-name: animatetop;
+        animation-duration: 0.3s;
+        color: var(--text-color);
+    }
+
+    @keyframes animatetop {
+        from {
+            top: -300px;
+            opacity: 0
+        }
+
+        to {
+            top: 0;
+            opacity: 1
+        }
+    }
+
+    .modal-header {
+        padding: 15px 20px;
+        background-color: var(--bg-light);
+        border-bottom: 1px solid var(--border-color);
+        border-radius: 8px 8px 0 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: var(--text-color);
+    }
+
+    .modal-body {
+        padding: 20px;
+        background-color: var(--bg-white);
+        color: var(--text-color);
+    }
+
+    .modal-footer {
+        padding: 15px 20px;
+        border-top: 1px solid var(--border-color);
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        background-color: var(--bg-light);
+    }
+
+    .close {
+        color: var(--text-secondary);
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .close:hover,
+    .close:focus {
+        color: var(--text-color);
+        text-decoration: none;
+    }
+
+    /* User details styles */
+    .user-profile {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 20px;
+        align-items: center;
+    }
+
+    .user-avatar {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        overflow: hidden;
+        position: relative;
+        border: 3px solid #f0f0f0;
+        background-color: #f5f7fa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .user-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .user-avatar .avatar-placeholder {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        color: var(--primary-color);
+        background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-light) 100%);
+    }
+
+    .user-info h2 {
+        margin-bottom: 5px;
+        font-size: 1.5rem;
+    }
+
+    .user-info p {
+        margin: 5px 0;
+        color: var(--text-secondary);
+    }
+
+    .detail-section {
+        margin: 20px 0;
+        border-top: 1px solid var(--border-color);
+        padding-top: 15px;
+    }
+
+    .detail-section h4 {
+        margin-bottom: 15px;
+        color: var(--text-strong);
+    }
+
+    .detail-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .detail-table th,
+    .detail-table td {
+        padding: 8px 12px;
+        text-align: left;
+        border-bottom: 1px solid var(--border-color);
+        color: var(--text-color);
+    }
+
+    .detail-table th {
+        width: 35%;
+        color: var(--text-secondary);
+        font-weight: 500;
+    }
+
+    .device-list {
+        list-style: none;
+        padding: 0;
+    }
+
+    .device-list li {
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border-color);
+        color: var(--text-color);
+    }
+
+    /* Utility classes */
+    .text-center {
+        text-align: center;
+    }
+
+    .btn-danger {
+        background-color: var(--danger-color);
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background-color: var(--danger-color);
+        filter: brightness(0.9);
+    }
+
+    .btn-success {
+        background-color: var(--success-color);
+        color: white;
+    }
+
+    .btn-success:hover {
+        background-color: var(--success-color);
+        filter: brightness(0.9);
+    }
+
+    .btn-secondary {
+        background-color: var(--secondary-color);
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background-color: var(--secondary-color);
+        filter: brightness(0.9);
+    }
+
+    /* Status badge styles */
+    .status-badge {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+
+    .status-enable {
+        background-color: rgba(66, 184, 131, 0.15);
+        color: var(--success-color);
+    }
+
+    .status-disable {
+        background-color: rgba(231, 76, 60, 0.15);
+        color: var(--danger-color);
+    }
+
+    /* Edit form styles */
+    .edit-form .form-group {
+        margin-bottom: 15px;
+    }
+
+    .edit-form label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 500;
+        color: var(--text-color);
+    }
+
+    .edit-form input {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid var(--input-border);
+        border-radius: 4px;
+        background-color: var(--input-bg);
+        color: var(--text-color);
+    }
+
+    .edit-form .form-error {
+        color: var(--danger-color);
+        font-size: 0.85rem;
+        margin-top: 5px;
+    }
+
+    /* Small notification popup styles */
+    .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        border-radius: 8px;
+        color: white;
+        font-weight: 500;
+        z-index: 9999;
+        min-width: 300px;
+        max-width: 400px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        transform: translateX(100%);
+        opacity: 0;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .notification.show {
+        transform: translateX(0);
+        opacity: 1;
+    }
+
+    .notification.success {
+        background: linear-gradient(135deg, #28a745, #20c997);
+    }
+
+    .notification.error {
+        background: linear-gradient(135deg, #dc3545, #e74c3c);
+    }
+
+    .notification.warning {
+        background: linear-gradient(135deg, #ffc107, #f39c12);
+        color: #333;
+    }
+
+    .notification.info {
+        background: linear-gradient(135deg, #17a2b8, #3498db);
+    }
+
+    .notification-content {
+        flex: 1;
+    }
+
+    .notification-close {
+        background: none;
+        border: none;
+        color: inherit;
+        font-size: 18px;
+        cursor: pointer;
+        padding: 0;
+        margin-left: 10px;
+        opacity: 0.7;
+        transition: opacity 0.2s ease;
+    }
+
+    .notification-close:hover {
+        opacity: 1;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h2>User Management</h2>
+    <p>View, edit or disable user accounts</p>
+</div>
+
+<div class="dashboard-stats" id="userStats">
+    <div class="stat-card">
+        <i class="fas fa-user-plus"></i>
+        <h3 id="totalUsers">--</h3>
+        <p>Total Users</p>
+    </div>
+    <div class="stat-card">
+        <i class="fas fa-user-check"></i>
+        <h3 id="activeUsers">--</h3>
+        <p>Active Users</p>
+    </div>
+    <div class="stat-card">
+        <i class="fas fa-user-slash"></i>
+        <h3 id="inactiveUsers">--</h3>
+        <p>Inactive Users</p>
+    </div>
+    <div class="stat-card">
+        <i class="fas fa-user-shield"></i>
+        <h3 id="adminUsers">--</h3>
+        <p>Admin Users</p>
+    </div>
+</div>
+
+<div class="main-content">
+    <div class="user-management-actions">
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="Search users by name, email or ID...">
+            <button id="searchBtn"><i class="fas fa-search"></i></button>
+        </div>
+    </div>
+
+    <div class="user-list">
+        <table class="user-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Status</th>
+                    <th>Created At</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="userTableBody">
+                <!-- User data will be loaded dynamically via AJAX -->
+                <tr>
+                    <td colspan="6" class="text-center">Loading user data...</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="pagination" id="paginationControls">
+            <!-- Pagination controls will be generated dynamically -->
+        </div>
+    </div>
+</div>
+
+<!-- User details modal -->
+<div id="userDetailModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>User Details</h3>
+            <span class="close">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="user-profile">
+                <div class="user-avatar" id="userAvatarContainer">
+                    <!-- Avatar content will be dynamically inserted here -->
+                </div>
+                <div class="user-info">
+                    <h2 id="userDetailName"></h2>
+                    <p id="userDetailEmail"></p>
+                    <p id="userDetailStatus"></p>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <h4>Account Information</h4>
+                <table class="detail-table">
+                    <tr>
+                        <th>User ID:</th>
+                        <td id="userDetailId"></td>
+                    </tr>
+                    <tr>
+                        <th>Phone:</th>
+                        <td id="userDetailPhone"></td>
+                    </tr>
+                    <tr>
+                        <th>Created At:</th>
+                        <td id="userDetailCreated"></td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="detail-section">
+                <h4>Connected Devices</h4>
+                <ul id="userDetailDevices" class="device-list">
+                    <!-- Device list will be generated dynamically -->
+                </ul>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary close-btn">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- Edit user modal -->
+<div id="editUserModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Edit User</h3>
+            <span class="close">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="editUserForm" class="edit-form">
+                <div class="form-group">
+                    <label for="editUsername">Username</label>
+                    <input type="text" id="editUsername" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="editEmail">Email</label>
+                    <input type="email" id="editEmail" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="editPhone">Phone</label>
+                    <input type="tel" id="editPhone" name="phone">
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button id="saveUserBtn" class="btn btn-success">Save Changes</button>
+            <button class="btn btn-secondary close-btn">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation modal -->
+<div id="confirmModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Confirm Action</h3>
+            <span class="close">&times;</span>
+        </div>
+        <div class="modal-body">
+            <p id="confirmMessage"></p>
+        </div>
+        <div class="modal-footer">
+            <button id="confirmActionBtn" class="btn btn-danger">Confirm</button>
+            <button class="btn btn-secondary close-btn">Cancel</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Variables and element references
+        let currentPage = 1;
+        let pageSize = 10;
+        let currentUserId = null;
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const userTableBody = document.getElementById('userTableBody');
+        const paginationControls = document.getElementById('paginationControls');
+        const userDetailModal = document.getElementById('userDetailModal');
+        const editUserModal = document.getElementById('editUserModal');
+        const confirmModal = document.getElementById('confirmModal');
+        const confirmMessage = document.getElementById('confirmMessage');
+        const confirmActionBtn = document.getElementById('confirmActionBtn');
+        const editUserForm = document.getElementById('editUserForm');
+        const saveUserBtn = document.getElementById('saveUserBtn');
+
+        // Show notification function
+        function showNotification(message, type = 'info') {
+            // Remove existing notifications
+            const existingNotifications = document.querySelectorAll('.notification');
+            existingNotifications.forEach(notification => notification.remove());
+
+            // Create new notification
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+
+            notification.innerHTML = `
+                <span class="notification-content">${message}</span>
+                <button class="notification-close">&times;</button>
+            `;
+
+            // Add to page
+            document.body.appendChild(notification);
+
+            // Show animation
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 100);
+
+            // Add close button event
+            const closeBtn = notification.querySelector('.notification-close');
+            closeBtn.addEventListener('click', () => {
+                notification.classList.remove('show');
+                setTimeout(() => notification.remove(), 300);
+            });
+
+            // Auto close
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.classList.remove('show');
+                    setTimeout(() => notification.remove(), 300);
+                }
+            }, 5000);
+        }
+
+        // Initial data loading
+        loadUserStats();
+        loadUsers(1);
+
+        // Register event handlers
+        searchBtn.addEventListener('click', function () {
+            loadUsers(1);
+        });
+
+        searchInput.addEventListener('keyup', function (event) {
+            if (event.key === 'Enter') {
+                loadUsers(1);
+            }
+        });
+
+        // Modal close event handling
+        document.querySelectorAll('.close, .close-btn').forEach(el => {
+            el.addEventListener('click', function () {
+                userDetailModal.style.display = 'none';
+                editUserModal.style.display = 'none';
+                confirmModal.style.display = 'none';
+            });
+        });
+
+        // Close modal when clicking outside
+        window.addEventListener('click', function (event) {
+            if (event.target === userDetailModal) {
+                userDetailModal.style.display = 'none';
+            }
+            if (event.target === editUserModal) {
+                editUserModal.style.display = 'none';
+            }
+            if (event.target === confirmModal) {
+                confirmModal.style.display = 'none';
+            }
+        });
+
+        // Save user edit click event
+        saveUserBtn.addEventListener('click', function () {
+            saveUserChanges();
+        });
+
+        // Confirm action button click event
+        confirmActionBtn.addEventListener('click', function () {
+            const action = confirmActionBtn.getAttribute('data-action');
+
+            if (action === 'toggleStatus') {
+                const userId = confirmActionBtn.getAttribute('data-user-id');
+                const newStatus = confirmActionBtn.getAttribute('data-status');
+                updateUserStatus(userId, newStatus);
+            }
+
+            confirmModal.style.display = 'none';
+        });
+
+        // Load user statistics
+        function loadUserStats() {
+            fetch('/admin/api/stats/users')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('totalUsers').textContent = data.data.total_users;
+                        document.getElementById('activeUsers').textContent = data.data.active_users;
+                        document.getElementById('inactiveUsers').textContent = data.data.inactive_users;
+                        document.getElementById('adminUsers').textContent = data.data.admin_users;
+                    }
+                })
+                .catch(error => console.error('Error fetching user stats:', error));
+        }
+
+        // Load user list
+        function loadUsers(page) {
+            currentPage = page;
+            const searchTerm = searchInput.value.trim();
+
+            // Show loading indicator
+            userTableBody.innerHTML = '<tr><td colspan="6" class="text-center">Loading user data...</td></tr>';
+
+            // Build request URL
+            const url = `/admin/api/users?page=${page}&limit=${pageSize}${searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : ''}`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        renderUserTable(data.data.users);
+                        renderPagination(data.data.pagination);
+                    } else {
+                        userTableBody.innerHTML = `<tr><td colspan="6" class="text-center">Error: ${data.message}</td></tr>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching users:', error);
+                    userTableBody.innerHTML = '<tr><td colspan="6" class="text-center">Failed to load user data. Please try again.</td></tr>';
+                });
+        }
+
+        // Render user table
+        function renderUserTable(users) {
+            if (!users || users.length === 0) {
+                userTableBody.innerHTML = '<tr><td colspan="6" class="text-center">No users found</td></tr>';
+                return;
+            }
+
+            let html = '';
+            users.forEach(user => {
+                const createdAt = user.create_at ? new Date(user.create_at).toLocaleDateString() : 'Unknown';
+                const statusClass = user.user_status === 'enable' ? 'status-active' : 'status-inactive';
+                const statusLabel = user.user_status === 'enable' ? 'Active' : 'Inactive';
+
+                html += `
+            <tr>
+                <td>${user.user_id}</td>
+                <td>${user.user_username}</td>
+                <td>${user.user_email}</td>
+                <td><span class="status ${statusClass}">${statusLabel}</span></td>
+                <td>${createdAt}</td>
+                <td class="action-buttons">
+                    <button class="btn btn-view" data-user-id="${user.user_id}" title="View user details"><i class="fas fa-eye"></i></button>
+                    <button class="btn btn-edit" data-user-id="${user.user_id}" title="Edit user"><i class="fas fa-pencil-alt"></i></button>
+                    <button class="btn btn-delete" data-user-id="${user.user_id}" data-status="${user.user_status}" title="${user.user_status === 'enable' ? 'Disable user' : 'Enable user'}">
+                        <i class="fas ${user.user_status === 'enable' ? 'fa-user-slash' : 'fa-user-check'}"></i>
+                    </button>
+                </td>
+            </tr>`;
+            });
+
+            userTableBody.innerHTML = html;
+
+            // Add view user details button click events
+            document.querySelectorAll('.btn-view').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const userId = this.getAttribute('data-user-id');
+                    openUserDetailModal(userId);
+                });
+            });
+
+            // Add edit user button click events
+            document.querySelectorAll('.btn-edit').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const userId = this.getAttribute('data-user-id');
+                    openEditUserModal(userId);
+                });
+            });
+
+            // Add disable/enable user button click events
+            document.querySelectorAll('.btn-delete').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const userId = this.getAttribute('data-user-id');
+                    const currentStatus = this.getAttribute('data-status');
+                    const newStatus = currentStatus === 'enable' ? 'disable' : 'enable';
+                    const actionText = newStatus === 'enable' ? 'enable' : 'disable';
+
+                    // Find username
+                    const row = this.closest('tr');
+                    const username = row.cells[1].textContent;
+
+                    confirmMessage.textContent = `Are you sure you want to ${actionText} the account for ${username}?`;
+                    confirmActionBtn.setAttribute('data-action', 'toggleStatus');
+                    confirmActionBtn.setAttribute('data-user-id', userId);
+                    confirmActionBtn.setAttribute('data-status', newStatus);
+
+                    confirmModal.style.display = 'block';
+                });
+            });
+        }
+
+        // Render pagination controls
+        function renderPagination(pagination) {
+            if (!pagination) return;
+
+            const totalPages = pagination.total_pages;
+            const currentPage = pagination.current_page;
+
+            let html = '';
+
+            // First page and previous page buttons
+            html += `
+            <button ${currentPage === 1 ? 'disabled' : ''} data-page="1">
+                <i class="fas fa-angle-double-left"></i>
+            </button>
+            <button ${currentPage === 1 ? 'disabled' : ''} data-page="${currentPage - 1}">
+                <i class="fas fa-angle-left"></i>
+            </button>`;
+
+            // Page number buttons
+            const maxPages = 5; // Maximum number of pages to display
+            let startPage = Math.max(1, currentPage - Math.floor(maxPages / 2));
+            let endPage = Math.min(totalPages, startPage + maxPages - 1);
+
+            if (endPage - startPage + 1 < maxPages) {
+                startPage = Math.max(1, endPage - maxPages + 1);
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                html += `<button ${i === currentPage ? 'class="active"' : ''} data-page="${i}">${i}</button>`;
+            }
+
+            // Next page and last page buttons
+            html += `
+            <button ${currentPage === totalPages ? 'disabled' : ''} data-page="${currentPage + 1}">
+                <i class="fas fa-angle-right"></i>
+            </button>
+            <button ${currentPage === totalPages ? 'disabled' : ''} data-page="${totalPages}">
+                <i class="fas fa-angle-double-right"></i>
+            </button>`;
+
+            paginationControls.innerHTML = html;
+
+            // Add pagination button click events
+            document.querySelectorAll('#paginationControls button:not([disabled])').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const page = parseInt(this.getAttribute('data-page'));
+                    loadUsers(page);
+                });
+            });
+        }
+
+        // Open user details modal
+        function openUserDetailModal(userId) {
+            currentUserId = userId;
+
+            fetch(`/admin/api/users/${userId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        const user = data.data;
+
+                        // Fill user details
+                        document.getElementById('userDetailId').textContent = user.user_id;
+                        document.getElementById('userDetailName').textContent = user.user_username;
+                        document.getElementById('userDetailEmail').textContent = user.user_email;
+                        document.getElementById('userDetailPhone').textContent = user.user_tel || 'Not provided';
+                        document.getElementById('userDetailCreated').textContent = new Date(user.create_at).toLocaleString();
+
+                        // Set status
+                        const statusText = user.user_status === 'enable' ? 'Active' : 'Inactive';
+                        const statusClass = user.user_status === 'enable' ? 'status-enable' : 'status-disable';
+                        document.getElementById('userDetailStatus').innerHTML = `<span class="status-badge ${statusClass}">${statusText}</span>`;
+
+                        // Set avatar
+                        const avatarContainer = document.getElementById('userAvatarContainer');
+                        if (user.user_avatar && user.user_avatar.trim() !== '') {
+                            // User has avatar, display image
+                            avatarContainer.innerHTML = `<img src="${user.user_avatar}" alt="User Avatar" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'avatar-placeholder\\'><i class=\\'fas fa-user\\' style=\\'font-size: 2.5rem; color: var(--primary-color);\\'></i></div>';">`;
+                        } else {
+                            // User has no avatar, display placeholder
+                            avatarContainer.innerHTML = `<div class="avatar-placeholder"><i class="fas fa-user" style="font-size: 2.5rem; color: var(--primary-color);"></i></div>`;
+                        }
+
+                        // Set device list
+                        const devicesList = document.getElementById('userDetailDevices');
+                        if (user.devices && user.devices.length > 0) {
+                            let devicesHtml = '';
+                            user.devices.forEach(device => {
+                                devicesHtml += `<li><i class="fas fa-mobile-alt"></i> ${device}</li>`;
+                            });
+                            devicesList.innerHTML = devicesHtml;
+                        } else {
+                            devicesList.innerHTML = '<li>No devices connected</li>';
+                        }
+
+                        // Show modal
+                        userDetailModal.style.display = 'block';
+                    } else {
+                        console.error('Error fetching user details:', data.message);
+                        showNotification(`Error: ${data.message}`, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching user details:', error);
+                    showNotification('Failed to load user details. Please try again.', 'error');
+                });
+        }
+
+        // Open edit user modal
+        function openEditUserModal(userId) {
+            currentUserId = userId;
+
+            fetch(`/admin/api/users/${userId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        const user = data.data;
+
+                        // Fill form
+                        document.getElementById('editUsername').value = user.user_username;
+                        document.getElementById('editEmail').value = user.user_email;
+                        document.getElementById('editPhone').value = user.user_tel || '';
+
+                        // Show modal
+                        editUserModal.style.display = 'block';
+                    } else {
+                        console.error('Error fetching user details:', data.message);
+                        showNotification(`Error: ${data.message}`, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching user details:', error);
+                    showNotification('Failed to load user details. Please try again.', 'error');
+                });
+        }
+
+        // Save user changes
+        function saveUserChanges() {
+            const username = document.getElementById('editUsername').value.trim();
+            const email = document.getElementById('editEmail').value.trim();
+            const phone = document.getElementById('editPhone').value.trim();
+
+            if (!username || !email) {
+                showNotification('Username and email are required', 'warning');
+                return;
+            }
+
+            // Create API endpoint
+            fetch(`/admin/api/users/${currentUserId}/update`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    username: username,
+                    email: email,
+                    phone: phone
+                })
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        // Close modal
+                        editUserModal.style.display = 'none';
+
+                        // Reload user list
+                        loadUsers(currentPage);
+
+                        // Show success message
+                        showNotification('User updated successfully', 'success');
+                    } else {
+                        console.error('Error updating user:', data.message);
+                        showNotification(`Error: ${data.message}`, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating user:', error);
+                    showNotification('Failed to update user. Please try again.', 'error');
+                });
+        }
+
+        // Update user status (enable/disable)
+        function updateUserStatus(userId, newStatus) {
+            fetch(`/admin/api/users/${userId}/status`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ status: newStatus })
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        // Reload user list and statistics
+                        loadUserStats();
+                        loadUsers(currentPage);
+                        showNotification(data.message, 'success');
+                    } else {
+                        console.error('Error updating user status:', data.message);
+                        showNotification(`Error: ${data.message}`, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating user status:', error);
+                    showNotification('Failed to update user status. Please try again.', 'error');
+                });
+        }
+    });
+</script>
+{% endblock %}

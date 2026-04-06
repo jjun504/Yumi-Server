@@ -1,0 +1,3095 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="{{ url_for('static', filename='Small_logo.png') }}" type="image/png">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+    <title>Device Settings</title>
+    <style>
+        :root {
+            --color-bg: #f6f8fa;
+            --color-border: #d0d7de;
+            --color-text: #24292f;
+            --color-text-secondary: #57606a;
+            --color-link: #0969da;
+            --color-link-hover: #0969da;
+            --color-header-bg: #ffffff;
+            --color-btn-primary-bg: #2da44e;
+            --color-btn-primary-hover: #2c974b;
+            --color-btn-primary-text: #ffffff;
+            --color-btn-danger-bg: #d73a49;
+            --color-btn-danger-hover: #cb2431;
+            --color-btn-danger-text: #ffffff;
+            --color-btn-default-bg: #f6f8fa;
+            --color-btn-default-hover: #f3f4f6;
+            --color-btn-default-text: #24292f;
+            --color-btn-default-border: #d0d7de;
+            --color-danger-bg: #ffebe9;
+            --color-danger-border: #ff8182;
+            --color-success-bg: #dafbe1;
+            --color-success-border: #56d364;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+        }
+
+        html, body {
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            height: 100vh;
+            width: 100vw;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            line-height: 1.5;
+        }
+
+        /* Container styles - force full screen display */
+        .settings-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header styles */
+        .settings-header {
+            padding: 16px 24px;
+            background-color: var(--color-header-bg);
+            border-bottom: 1px solid var(--color-border);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .header-content {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .settings-header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--color-text);
+        }
+
+        .device-info {
+            font-size: 14px;
+            color: var(--color-text-secondary);
+        }
+
+        /* Layout styles */
+        .settings-layout {
+            display: flex;
+            /* max-width: 1280px; */
+            margin: 0 auto;
+            width: 100%;
+            flex: 1;
+        }
+
+        /* Sidebar styles */
+        .settings-sidebar {
+            width: 256px;
+            padding: 24px 0;
+            border-right: 1px solid var(--color-border);
+            background-color: #ffffff;
+        }
+
+        .settings-nav {
+            position: sticky;
+            top: 80px;
+        }
+
+        .nav-list {
+            list-style: none;
+        }
+
+        .nav-item {
+            margin-bottom: 4px;
+        }
+
+        .nav-item a {
+            display: block;
+            padding: 12px 20px;
+            color: var(--color-text);
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+
+        .nav-item a:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        .nav-item.active a {
+            background-color: var(--color-bg);
+            color: var(--color-link);
+            font-weight: 500;
+        }
+
+        /* Content area styles */
+        .settings-content {
+            flex: 1;
+            padding: 24px 40px;
+            background-color: #ffffff;
+        }
+
+        /* Settings section styles */
+        .settings-section {
+            display: none;
+            margin-bottom: 32px;
+            max-width: 800px;
+        }
+
+        .settings-section.active {
+            display: block;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .danger-title {
+            color: var(--color-btn-danger-bg);
+        }
+
+        .danger-text {
+            color: var(--color-text-secondary);
+            margin-bottom: 16px;
+        }
+
+        /* Setting item styles */
+        .setting-item {
+            margin-bottom: 16px;
+            padding: 8px 0;
+        }
+
+        .setting-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--color-text);
+            font-size: 14px;
+        }
+
+        .setting-input {
+            width: 100%;
+            max-width: 440px;
+            padding: 5px 12px;
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            font-size: 14px;
+            line-height: 20px;
+            transition: border-color 0.2s;
+        }
+
+        .setting-input:focus {
+            border-color: var(--color-link);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.3);
+        }
+
+        .setting-slider {
+            width: 100%;
+            max-width: 440px;
+            margin-top: 8px;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            max-width: 440px;
+        }
+
+        .slider-value {
+            margin-left: 12px;
+            min-width: 30px;
+            text-align: right;
+            color: var(--color-text-secondary);
+        }
+
+        .setting-checkbox {
+            margin-right: 8px;
+        }
+
+        .setting-select {
+            width: 100%;
+            max-width: 440px;
+            padding: 5px 12px;
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            font-size: 14px;
+            line-height: 20px;
+            background-color: #ffffff;
+            transition: border-color 0.2s;
+        }
+
+        .setting-select:focus {
+            border-color: var(--color-link);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.3);
+        }
+
+        .service-specific {
+            margin-left: 24px;
+            border-left: 2px solid var(--color-border);
+            padding-left: 16px;
+        }
+
+        .info-text {
+            padding: 8px 12px;
+            background-color: var(--color-bg);
+            border-radius: 6px;
+            font-size: 14px;
+            color: var(--color-text-secondary);
+        }
+
+        .setting-description {
+            margin-top: 4px;
+            font-size: 12px;
+            color: var(--color-text-secondary);
+            line-height: 1.4;
+        }
+
+        /* Password input container styles */
+        .password-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            max-width: 440px;
+        }
+
+        .password-container .setting-input {
+            flex: 1;
+            padding-right: 70px; /* Leave space for button */
+        }
+
+        /* Password show/hide button styles */
+        .password-toggle-btn {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--color-text-secondary);
+            transition: color 0.2s;
+        }
+
+        .password-toggle-btn:hover {
+            color: var(--color-text);
+        }
+
+        .password-toggle-btn .eye-icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        .password-container .setting-input {
+            flex: 1;
+            padding-right: 40px; /* Leave space for eye icon */
+        }
+
+        /* Personalization settings styles */
+        .personalization-section {
+            padding: 16px;
+            border-radius: 6px;
+            border: 1px solid var(--color-border);
+        }
+
+        .subsection-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--color-text);
+        }
+
+        /* Read-only input styles */
+        input[readonly], textarea[readonly] {
+            background-color: var(--color-bg);
+            cursor: default;
+        }
+
+        /* Character memory container styles */
+        .memory-container {
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border: 1px solid var(--color-border);
+            max-height: 200px;
+            overflow-y: auto;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .memory-content {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: var(--color-text);
+            text-align: justify;
+            transition: opacity 0.5s ease;
+        }
+
+        .memory-content p {
+            margin-bottom: 10px;
+            text-align: justify;
+        }
+
+        /* Update animation effects */
+        @keyframes glowBorder {
+            0% {
+                clip-path: inset(0 100% 100% 0);
+            }
+            25% {
+                clip-path: inset(0 0 100% 0);
+            }
+            50% {
+                clip-path: inset(0 0 0 100%);
+            }
+            75% {
+                clip-path: inset(100% 0 0 0);
+            }
+            100% {
+                clip-path: inset(0 100% 100% 0);
+            }
+        }
+
+        .memory-container.updating::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 2px solid var(--color-link);
+            border-radius: 6px;
+            animation: glowBorder 1.2s linear forwards;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .memory-container.updating .memory-content {
+            opacity: 0.5;
+        }
+
+        /* Scrollbar styling */
+        .memory-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .memory-container::-webkit-scrollbar-track {
+            background: rgba(9, 105, 218, 0.05);
+            border-radius: 3px;
+        }
+
+        .memory-container::-webkit-scrollbar-thumb {
+            background: rgba(9, 105, 218, 0.2);
+            border-radius: 3px;
+        }
+
+        /* Save button container */
+        .save-container {
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px solid var(--color-border);
+            background: none;
+        }
+
+        /* Button styles */
+        .save-button {
+            background-color: var(--color-btn-primary-bg);
+            color: var(--color-btn-primary-text);
+            border: none;
+            border-radius: 8px;
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .save-button:hover {
+            background-color: var(--color-btn-primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Back button styles */
+        .back-button {
+            position: fixed;
+            top: 15px;
+            left: 20px;
+            /* background-color: var(--color-btn-default-bg); */
+            color: var(--color-text);
+            /* border: 1px solid var(--color-border); */
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 2rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 1000;
+            transition: all 0.2s;
+            /* box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); */
+        }
+
+        .back-button:hover {
+            /* background-color: var(--color-btn-default-hover); */
+            transform: scale(1.5);
+            /* box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); */
+        }
+
+        .back-button svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Status message styles */
+        .status-message {
+            margin-top: 16px;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .status-success {
+            background-color: var(--color-success-bg);
+            color: #1a7f37;
+            border: 1px solid var(--color-success-border);
+        }
+
+        .status-error {
+            background-color: var(--color-danger-bg);
+            color: #cf222e;
+            border: 1px solid var(--color-danger-border);
+        }
+
+        .status-info {
+            background-color: #e3f2fd;
+            color: #1976d2;
+            border: 1px solid #90caf9;
+        }
+
+        /* Save button container styles */
+        .save-container {
+            transition: all 0.3s ease;
+        }
+
+        .save-container.has-changes {
+            padding: 16px;
+        }
+
+        #saveSettings {
+            display: none; /* Hide save button by default */
+        }
+
+        /* Danger zone styles */
+        .danger-zone {
+            border: 1px solid var(--color-danger-border);
+            border-radius: 6px;
+            padding: 16px;
+            background-color: var(--color-danger-bg);
+        }
+
+        .danger-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0;
+            border-bottom: 1px solid rgba(207, 34, 46, 0.2);
+        }
+
+        .danger-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .danger-info {
+            flex: 1;
+        }
+
+        .danger-info h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .danger-info p {
+            color: var(--color-text-secondary);
+            font-size: 14px;
+        }
+
+        .danger-button {
+            background-color: var(--color-btn-danger-bg);
+            color: var(--color-btn-danger-text);
+            border: none;
+            border-radius: 6px;
+            padding: 5px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-left: 16px;
+        }
+
+        .danger-button:hover {
+            background-color: var(--color-btn-danger-hover);
+        }
+
+        /* Reset Personality modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .reset-modal {
+            background-color: white;
+            margin: 5% auto;
+            padding: 2rem;
+            border-radius: 12px;
+            border: 2px solid var(--color-btn-danger-bg);
+            max-width: 500px;
+            text-align: center;
+            position: relative;
+        }
+
+        .reset-modal h2 {
+            color: var(--color-btn-danger-bg);
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .reset-modal ul {
+            text-align: left;
+            margin: 1rem 0;
+            padding-left: 1.5rem;
+        }
+
+        .reset-modal li {
+            margin: 0.5rem 0;
+            color: #666;
+        }
+
+        .confirm-input {
+            width: 100%;
+            padding: 0.75rem;
+            margin: 1rem 0;
+            border: 2px solid var(--color-btn-danger-bg);
+            border-radius: 8px;
+            font-size: 1rem;
+            text-align: center;
+            font-weight: bold;
+            box-sizing: border-box;
+        }
+
+        .warning-text {
+            color: var(--color-btn-danger-bg);
+            font-weight: bold;
+            margin: 1rem 0;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 2rem;
+        }
+
+        .danger-btn {
+            background: var(--color-btn-danger-bg);
+            color: var(--color-btn-danger-text);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .danger-btn:hover:not(:disabled) {
+            background: var(--color-btn-danger-hover);
+            transform: translateY(-1px);
+        }
+
+        .danger-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .cancel-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .cancel-btn:hover {
+            background: #5a6268;
+            transform: translateY(-1px);
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .settings-layout {
+                flex-direction: column;
+            }
+
+            .settings-sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid var(--color-border);
+                padding: 16px;
+            }
+
+            .settings-content {
+                padding: 16px;
+            }
+
+            .nav-item a {
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="settings-container">
+        <!-- Back button -->
+        <a href="javascript:void(0);" class="back-button" id="backButton">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+        </a>
+
+        <div class="settings-header">
+            <div class="header-content">
+                <h1>Device Settings</h1>
+                <div class="device-info">
+                    <span class="device-id">Device ID: <span id="header-device-id">{{ device_id }}</span></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="settings-layout">
+            <!-- Left navigation bar -->
+            <div class="settings-sidebar">
+                <nav class="settings-nav">
+                    <ul class="nav-list">
+                        <li class="nav-item active" data-section="systemSettings">
+                            <a href="#systemSettings">System Settings</a>
+                        </li>
+                        <li class="nav-item" data-section="wakeWordSettings">
+                            <a href="#wakeWordSettings">Wake Word Settings</a>
+                        </li>
+                        <li class="nav-item" data-section="sttSettings">
+                            <a href="#sttSettings">Speech Recognition</a>
+                        </li>
+                        <li class="nav-item" data-section="ttsSettings">
+                            <a href="#ttsSettings">Text-to-Speech</a>
+                        </li>
+                        <li class="nav-item" data-section="llmSettings">
+                            <a href="#llmSettings">Language Model</a>
+                        </li>
+                        <li class="nav-item" data-section="musicSettings">
+                            <a href="#musicSettings">Music Settings</a>
+                        </li>
+                        <li class="nav-item" data-section="notificationSettings">
+                            <a href="#notificationSettings">Notifications</a>
+                        </li>
+                        <li class="nav-item" data-section="weatherSettings">
+                            <a href="#weatherSettings">Weather Settings</a>
+                        </li>
+                        <li class="nav-item" data-section="mqttSettings">
+                            <a href="#mqttSettings">MQTT Settings</a>
+                        </li>
+                        <li class="nav-item" data-section="personalizationSettings">
+                            <a href="#personalizationSettings">Personalization</a>
+                        </li>
+                        <li class="nav-item" data-section="dangerZone">
+                            <a href="#dangerZone">Danger Zone</a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+
+            <!-- Right content area -->
+            <div class="settings-content" id="settingsContent">
+                <!-- System settings -->
+                <div class="settings-section active" id="systemSettings">
+                    <h2 class="section-title">System Settings</h2>
+                    <div class="setting-item">
+                        <label class="setting-label" for="deviceId">Device ID</label>
+                        <input type="text" id="deviceId" class="setting-input" placeholder="Device ID" readonly>
+                    </div>
+                    <div class="setting-item">
+                        <label class="setting-label" for="deviceModel">Device Model</label>
+                        <input type="text" id="deviceModel" class="setting-input" placeholder="Device Model" readonly>
+                    </div>
+                    <div class="setting-item">
+                        <label class="setting-label" for="deviceVersion">Software Version</label>
+                        <input type="text" id="deviceVersion" class="setting-input" placeholder="Software Version" readonly>
+                    </div>
+                    <div class="setting-item">
+                        <label class="setting-label" for="devicePassword">Device Password</label>
+                        <div class="password-container">
+                            <input type="password" id="devicePassword" class="setting-input" placeholder="Device Password">
+                            <button type="button" id="togglePassword" class="password-toggle-btn" aria-label="Toggle password visibility">
+                                <svg class="eye-icon show-text" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                                <svg class="eye-icon hide-text" style="display: none;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+
+
+                <!-- Wake word settings -->
+                <div class="settings-section" id="wakeWordSettings">
+                    <h2 class="section-title">Wake Word Settings</h2>
+                    <div class="setting-item">
+                        <label class="setting-label">
+                            <input type="checkbox" id="wakeWordEnabled" class="setting-checkbox">
+                            Enable Wake Word
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Speech recognition settings -->
+                <div class="settings-section" id="sttSettings">
+                    <h2 class="section-title">Speech Recognition</h2>
+
+                    <div class="setting-item">
+                        <label class="setting-label" for="sttActiveService">Speech Recognition Service</label>
+                        <select id="sttActiveService" class="setting-select">
+                            <!-- Options will be dynamically generated by JavaScript -->
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label class="setting-label" for="sttLanguage">Recognition Language</label>
+                        <select id="sttLanguage" class="setting-select">
+                            <option value="zh-CN">Chinese (Simplified)</option>
+                            <option value="en-US">English (US)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Text-to-speech settings -->
+                <div class="settings-section" id="ttsSettings">
+                    <h2 class="section-title">Text-to-Speech</h2>
+
+                    <div class="setting-item">
+                        <label class="setting-label" for="ttsActiveService">Text-to-Speech Service</label>
+                        <select id="ttsActiveService" class="setting-select">
+                            <!-- Options will be dynamically generated by JavaScript -->
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label class="setting-label" for="ttsLanguage">Synthesis Language</label>
+                        <select id="ttsLanguage" class="setting-select">
+                            <!-- Options will be dynamically generated by JavaScript -->
+                        </select>
+                    </div>
+
+                    <!-- Azure TTS model selection -->
+                    <div class="setting-item service-specific" id="azureTtsSettings">
+                        <label class="setting-label" for="azureTtsModel">Azure Voice Model</label>
+                        <select id="azureTtsModel" class="setting-select">
+                            <!-- Options will be dynamically generated by JavaScript -->
+                        </select>
+                    </div>
+
+                    <!-- ByteDance TTS model selection -->
+                    <div class="setting-item service-specific" id="bytedanceTtsSettings">
+                        <label class="setting-label" for="bytedanceTtsModel">ByteDance Voice Model</label>
+                        <select id="bytedanceTtsModel" class="setting-select">
+                            <!-- Options will be dynamically generated by JavaScript -->
+                        </select>
+                    </div>
+
+                    <!-- GPT-SoVITS TTS model selection -->
+                    <div class="setting-item service-specific" id="sovitsTtsSettings">
+                        <label class="setting-label" for="sovitsTtsModel">GPT-SoVITS Voice Model</label>
+                        <select id="sovitsTtsModel" class="setting-select">
+                            <!-- Options will be dynamically generated by JavaScript -->
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Large language model settings -->
+                <div class="settings-section" id="llmSettings">
+                    <h2 class="section-title">Language Model</h2>
+
+                    <div class="setting-item">
+                        <label class="setting-label" for="llmActiveService">Language Model Service</label>
+                        <select id="llmActiveService" class="setting-select">
+                            <!-- Options will be dynamically generated by JavaScript -->
+                        </select>
+                    </div>
+
+                    <!-- OpenAI model selection -->
+                    <div class="setting-item service-specific" id="openaiLlmSettings">
+                        <label class="setting-label" for="openaiModel">OpenAI Model</label>
+                        <select id="openaiModel" class="setting-select">
+                            <!-- Options will be dynamically generated by JavaScript -->
+                        </select>
+                    </div>
+
+                    <!-- Deepseek model selection -->
+                    <div class="setting-item service-specific" id="deepseekLlmSettings">
+                        <label class="setting-label" for="deepseekModel">Deepseek Model</label>
+                        <select id="deepseekModel" class="setting-select">
+                            <!-- Options will be dynamically generated by JavaScript -->
+                        </select>
+                    </div>
+
+                    <!-- Groq model selection -->
+                    <div class="setting-item service-specific" id="groqLlmSettings">
+                        <label class="setting-label" for="groqModel">Groq Model</label>
+                        <select id="groqModel" class="setting-select">
+                            <!-- Options will be dynamically generated by JavaScript -->
+                        </select>
+                    </div>
+
+                    <div class="setting-item">
+                        <label class="setting-label" for="llmTemperature">Temperature (Creativity)</label>
+                        <div class="slider-container">
+                            <input type="range" id="llmTemperature" class="setting-slider" min="0" max="2" step="0.1" value="1">
+                            <span id="llmTemperatureValue" class="slider-value">1</span>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <label class="setting-label" for="llmMaxTokens">Maximum Generation Length (tokens)</label>
+                        <input type="number" id="llmMaxTokens" class="setting-input" min="1" max="4096" value="256">
+                    </div>
+                    <div class="setting-item">
+                        <label class="setting-label" for="llmSummaryTokens">Context Memory Size (tokens)</label>
+                        <input type="number" id="llmSummaryTokens" class="setting-input" min="1000" max="10000" value="3000">
+                        <div class="setting-description">Size of historical conversation the model can remember</div>
+                    </div>
+                    <div class="setting-item">
+                        <label class="setting-label" for="llmLastMessagesNum">Complete Conversation Memory Count</label>
+                        <input type="number" id="llmLastMessagesNum" class="setting-input" min="1" max="10" value="2">
+                        <div class="setting-description">Number of recent conversation turns the model can fully remember</div>
+                    </div>
+                </div>
+
+                <!-- Music settings -->
+                <div class="settings-section" id="musicSettings">
+                    <h2 class="section-title">Music Settings</h2>
+
+                    <div class="setting-item">
+                        <label class="setting-label">
+                            <input type="checkbox" id="musicResumePlay" class="setting-checkbox">
+                            Music Resume Enable
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Notification settings -->
+                <div class="settings-section" id="notificationSettings">
+                    <h2 class="section-title">Notifications</h2>
+                    <div class="setting-item">
+                        <label class="setting-label">
+                            <input type="checkbox" id="timeNotifyEnabled" class="setting-checkbox">
+                            Enable Time Notifications
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label class="setting-label">
+                            <input type="checkbox" id="scheduleNotifyEnabled" class="setting-checkbox">
+                            Enable Schedule Notifications
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Weather settings -->
+                <div class="settings-section" id="weatherSettings">
+                    <h2 class="section-title">Weather Settings</h2>
+
+                    <div class="setting-item">
+                        <label class="setting-label" for="weatherLocation">Weather Location</label>
+                        <select id="weatherLocation" class="setting-input">
+                            <option value="Ayer Keroh">Ayer Keroh</option>
+                            <option value="Johor Bahru">Johor Bahru</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label class="setting-label">Last Updated</label>
+                        <div class="info-text" id="weatherLastUpdated">Not retrieved</div>
+                    </div>
+                </div>
+
+                <!-- MQTT settings -->
+                <div class="settings-section" id="mqttSettings">
+                    <h2 class="section-title">MQTT Settings</h2>
+                    <div class="setting-item">
+                        <label class="setting-label" for="mqttBroker">MQTT Server</label>
+                        <input type="text" id="mqttBroker" class="setting-input" placeholder="MQTT Server Address" readonly>
+                    </div>
+                    <div class="setting-item">
+                        <label class="setting-label" for="mqttPort">MQTT Port</label>
+                        <input type="number" id="mqttPort" class="setting-input" min="1" max="65535" value="1883" readonly>
+                    </div>
+                    <div class="setting-item">
+                        <label class="setting-label" for="mqttClientIdPrefix">Client ID Prefix</label>
+                        <input type="text" id="mqttClientIdPrefix" class="setting-input" placeholder="Client ID Prefix" readonly>
+                    </div>
+                    <div class="setting-item">
+                        <label class="setting-label" for="mqttTopicPrefix">Topic Prefix</label>
+                        <input type="text" id="mqttTopicPrefix" class="setting-input" placeholder="Topic Prefix" readonly>
+                    </div>
+                </div>
+
+                <!-- Personalization settings -->
+                <div class="settings-section" id="personalizationSettings">
+                    <h2 class="section-title">Personalization</h2>
+
+                    <!-- User personalization settings -->
+                    <div class="personalization-section">
+                        <h3 class="subsection-title">User Personalization</h3>
+                        <div class="setting-item">
+                            <label class="setting-label" for="userName">User Name</label>
+                            <input type="text" id="userName" class="setting-input" placeholder="User Name" readonly>
+                        </div>
+                        <div class="setting-item">
+                            <label class="setting-label" for="userAge">User Age</label>
+                            <input type="text" id="userAge" class="setting-input" placeholder="User Age" readonly>
+                        </div>
+                        <div class="setting-item">
+                            <label class="setting-label" for="userHobbies">User Hobbies</label>
+                            <input type="text" id="userHobbies" class="setting-input" placeholder="User Hobbies" readonly>
+                        </div>
+                        <div class="setting-item">
+                            <label class="setting-label" for="userRegion">User Region</label>
+                            <input type="text" id="userRegion" class="setting-input" placeholder="User Region" readonly>
+                        </div>
+                        <div class="setting-item">
+                            <label class="setting-label" for="userProfile">User Profile</label>
+                            <textarea id="userProfile" class="setting-input" placeholder="User Profile" readonly style="height: 100px; resize: none;"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Device character personalization settings -->
+                    <div class="personalization-section" style="margin-top: 24px;">
+                        <h3 class="subsection-title">Device Character Personalization</h3>
+                        <div class="setting-item">
+                            <label class="setting-label" for="deviceRoleName">Character Name</label>
+                            <input type="text" id="deviceRoleName" class="setting-input" placeholder="Character Name" readonly>
+                        </div>
+                        <div class="setting-item">
+                            <label class="setting-label" for="deviceRoleAge">Character Age</label>
+                            <input type="text" id="deviceRoleAge" class="setting-input" placeholder="Character Age" readonly>
+                        </div>
+                        <div class="setting-item">
+                            <label class="setting-label" for="deviceRoleRelationship">Relationship with User</label>
+                            <input type="text" id="deviceRoleRelationship" class="setting-input" placeholder="Relationship with User" readonly>
+                        </div>
+                        <div class="setting-item">
+                            <label class="setting-label" for="deviceRolePersonality">Character Personality</label>
+                            <input type="text" id="deviceRolePersonality" class="setting-input" placeholder="Character Personality" readonly>
+                        </div>
+                        <div class="setting-item">
+                            <label class="setting-label" for="deviceRoleBackground">Character Background</label>
+                            <textarea id="deviceRoleBackground" class="setting-input" placeholder="Character Background" readonly style="height: 100px; resize: none;"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Character memory -->
+                    <div class="personalization-section" style="margin-top: 24px;">
+                        <h3 class="subsection-title">Character Memory</h3>
+                        <div class="setting-item">
+                            <label class="setting-label" for="characterMemory">Current Memory Content</label>
+                            <div class="memory-container" id="character-memory">
+                                <div class="memory-content">
+                                    <p id="summary-content">Loading character memory...</p>
+                                </div>
+                            </div>
+                            <div class="setting-description">This shows the character's memory about you, which updates automatically with conversations.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Danger zone -->
+                <div class="settings-section" id="dangerZone">
+                    <h2 class="section-title danger-title">Danger Zone</h2>
+                    <p class="danger-text">The following operations are destructive. Please proceed with caution.</p>
+
+                    <div class="danger-zone">
+                        <div class="danger-item">
+                            <div class="danger-info">
+                                <h3>Reset Personality Settings</h3>
+                                <p>Permanently delete all personality settings, memories, and chat history. This action cannot be undone.</p>
+                            </div>
+                            <button id="resetPersonalityBtn" class="danger-button">Reset Personality</button>
+                        </div>
+
+                        <div class="danger-item">
+                            <div class="danger-info">
+                                <h3>Unbind Device</h3>
+                                <p>Unbind the device from your account. This action cannot be undone.</p>
+                            </div>
+                            <button id="unbindDeviceBtn" class="danger-button">Unbind Device</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-item save-container">
+                    <button id="saveSettings" class="save-button">Save Changes</button>
+                    <div id="statusMessage" class="status-message"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reset Personality confirmation modal -->
+    <div id="resetPersonalityModal1" class="modal">
+        <div class="modal-content reset-modal">
+            <h2>⚠️ Warning: Reset Personality Settings</h2>
+            <p>You are about to permanently delete all personality settings and memories. This action will:</p>
+            <ul>
+                <li>Clear all user personalization data</li>
+                <li>Clear all character configuration</li>
+                <li>Delete all chat history and memories</li>
+                <li>Reset the device to uninitialized state</li>
+            </ul>
+            <p><strong>This action cannot be undone!</strong></p>
+            <div class="modal-buttons">
+                <button class="cancel-btn" onclick="closeResetModals()">Cancel</button>
+                <button class="danger-btn" onclick="showResetConfirmation2()">Continue</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="resetPersonalityModal2" class="modal">
+        <div class="modal-content reset-modal">
+            <h2>🚨 Final Warning</h2>
+            <p>Are you absolutely sure you want to delete all personality data and memories?</p>
+            <p><strong>Once deleted, all conversations, memories, and personality settings will be permanently lost and cannot be recovered.</strong></p>
+            <div class="modal-buttons">
+                <button class="cancel-btn" onclick="closeResetModals()">Cancel</button>
+                <button class="danger-btn" onclick="showResetConfirmation3()">Yes, I understand</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="resetPersonalityModal3" class="modal">
+        <div class="modal-content reset-modal">
+            <h2><span style="color: #FFD700;">⚠️</span> Last Chance</h2>
+            <p>This is your final chance to cancel. Type "DELETE" in the box below to confirm:</p>
+            <input type="text" id="deleteConfirmInput" placeholder="Type DELETE here" class="confirm-input">
+            <p class="warning-text">All personality memories will be gone forever!</p>
+            <div class="modal-buttons">
+                <button class="cancel-btn" onclick="closeResetModals()">Cancel</button>
+                <button class="danger-btn" id="finalDeleteBtn" onclick="executeResetPersonality()" disabled>Delete Forever</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Unbind Device confirmation modal -->
+    <div id="unbindDeviceModal1" class="modal">
+        <div class="modal-content reset-modal">
+            <h2>⚠️ Warning: Unbind Device</h2>
+            <p>You are about to unbind this device from your account. This action will:</p>
+            <ul>
+                <li>Remove the device from your account</li>
+                <li>Reset the device's user association</li>
+                <li>Require re-binding to use the device again</li>
+                <li>Keep all device settings and data intact</li>
+            </ul>
+            <p><strong>This action cannot be undone!</strong></p>
+            <div class="modal-buttons">
+                <button class="cancel-btn" onclick="closeUnbindModals()">Cancel</button>
+                <button class="danger-btn" onclick="showUnbindConfirmation2()">Continue</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="unbindDeviceModal2" class="modal">
+        <div class="modal-content reset-modal">
+            <h2>🚨 Final Warning</h2>
+            <p>Are you absolutely sure you want to unbind this device?</p>
+            <p><strong>Once unbound, you will need to go through the binding process again to use this device.</strong></p>
+            <div class="modal-buttons">
+                <button class="cancel-btn" onclick="closeUnbindModals()">Cancel</button>
+                <button class="danger-btn" onclick="showUnbindConfirmation3()">Yes, I understand</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="unbindDeviceModal3" class="modal">
+        <div class="modal-content reset-modal">
+            <h2><span style="color: #FFD700;">⚠️</span> Last Chance</h2>
+            <p>This is your final chance to cancel. Type "UNBIND" in the box below to confirm:</p>
+            <input type="text" id="unbindConfirmInput" placeholder="Type UNBIND here" class="confirm-input">
+            <p class="warning-text">The device will be removed from your account!</p>
+            <div class="modal-buttons">
+                <button class="cancel-btn" onclick="closeUnbindModals()">Cancel</button>
+                <button class="danger-btn" id="finalUnbindBtn" onclick="executeUnbindDevice()" disabled>Unbind Forever</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables for access in all functions
+        let socket;
+        let deviceId;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get device ID from template variable
+            deviceId = "{{ device_id }}";
+            console.log("Initializing settings page, device ID:", deviceId);
+
+            // Immediately hide save button to ensure it's not shown during page load
+            const saveButton = document.getElementById('saveSettings');
+            if (saveButton) {
+                saveButton.style.display = 'none';
+                console.log("Hide save button during page load");
+            }
+
+            // Remove changes style from save container
+            const saveContainer = document.querySelector('.save-container');
+            if (saveContainer) {
+                saveContainer.classList.remove('has-changes');
+            }
+
+            // Display current device information
+            const headerDeviceId = document.getElementById('header-device-id');
+            if (headerDeviceId && deviceId) {
+                headerDeviceId.textContent = deviceId;
+            }
+
+            // Initialize Socket.IO connection
+            socket = io();
+
+            // Navigation functionality implementation
+            const navItems = document.querySelectorAll('.nav-item');
+            const settingsSections = document.querySelectorAll('.settings-section');
+
+            // Join device room to receive summary updates
+            socket.emit('join_device_room', {
+                device_id: deviceId,
+                user_id: "{{ user_id }}"
+            });
+
+            // Listen for summary update events
+            socket.on('summary_update', function(data) {
+                if (data.device_id === deviceId) {
+                    console.log("Received summary update:", data);
+                    updateSummaryDisplay(data.summary);
+                }
+            });
+
+            // Listen for reset_personality response
+            socket.on('reset_personality_response', function(data) {
+                console.log('Reset personality response:', data);
+
+                const statusMessage = document.getElementById('statusMessage');
+
+                if (data.success) {
+                    statusMessage.textContent = data.message;
+                    statusMessage.className = "status-message status-success";
+                    statusMessage.style.display = "block";
+
+                    // Redirect to control panel page after 2 seconds
+                    setTimeout(() => {
+                        console.log("Redirecting to control panel after personality reset");
+                        window.location.href = `/control?device_id=${deviceId}`;
+                    }, 2000);
+                } else {
+                    statusMessage.textContent = data.message;
+                    statusMessage.className = "status-message status-error";
+                    statusMessage.style.display = "block";
+
+                    // Hide status message after 3 seconds
+                    setTimeout(() => {
+                        statusMessage.style.display = "none";
+                    }, 3000);
+                }
+            });
+
+            // Update summary display
+            function updateSummaryDisplay(summary) {
+                const summaryElement = document.getElementById('summary-content');
+                const memoryContainer = document.getElementById('character-memory');
+
+                if (summaryElement && memoryContainer) {
+                    // Add updating class to trigger animation
+                    memoryContainer.classList.add('updating');
+
+                    // Update content after animation completes
+                    setTimeout(() => {
+                        if (summary && summary.trim() !== '') {
+                            summaryElement.textContent = summary;
+                        } else {
+                            summaryElement.textContent = "No character memory available yet. Start a conversation to create memories.";
+                        }
+
+                        // Remove updating class after animation completes
+                        setTimeout(() => {
+                            memoryContainer.classList.remove('updating');
+                        }, 200);
+                    }, 1000); // Wait 1 second to give animation enough time to display
+                }
+            }
+
+            // Request current summary
+            function requestCurrentSummary() {
+                // Build message.json path
+                const messagePath = `user/{{ user_id }}/${deviceId}/chat_history/message.json`;
+
+                // Use fetch API to request file content
+                fetch(`/read_file?path=${encodeURIComponent(messagePath)}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Unable to read memory file');
+                        }
+                        return response.json();
+                    })
+                    .then(messages => {
+                        // Extract summary (first message)
+                        if (messages && messages.length > 0 && messages[0].role === 'system') {
+                            updateSummaryDisplay(messages[0].content);
+                        } else {
+                            updateSummaryDisplay('');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Failed to get character memory:', error);
+                        updateSummaryDisplay('');
+                    });
+            }
+
+            // Store available services and model information
+            let availableServices = {
+                STT: { services: [] },
+                TTS: { services: {} },
+                LLM: { services: {} }
+            };
+
+            // Request available services and models
+            function requestAvailableServices() {
+                socket.emit('request_available_services');
+            }
+
+            // Listen for available services and models response
+            socket.on('available_services', function(data) {
+                console.log("Received available services and model information:", data);
+                availableServices = data;
+
+                // Update service and model options
+                updateServiceOptions();
+
+                // If configuration data already exists, reapply all service and model selections
+                if (window.currentDeviceConfig) {
+                    console.log("Available services loaded, reapplying configuration");
+
+                    // Reapply TTS configuration
+                    if (window.currentDeviceConfig.TTS) {
+                        const ttsConfig = window.currentDeviceConfig.TTS;
+
+                        // Set TTS service
+                        const ttsServiceSelect = document.getElementById('ttsActiveService');
+                        if (ttsServiceSelect && ttsConfig.active_service) {
+                            for (let i = 0; i < ttsServiceSelect.options.length; i++) {
+                                if (ttsServiceSelect.options[i].value === ttsConfig.active_service) {
+                                    ttsServiceSelect.selectedIndex = i;
+                                    break;
+                                }
+                            }
+                        }
+
+                        // Set TTS language
+                        const ttsLanguageSelect = document.getElementById('ttsLanguage');
+                        if (ttsLanguageSelect && ttsConfig.language) {
+                            for (let i = 0; i < ttsLanguageSelect.options.length; i++) {
+                                if (ttsLanguageSelect.options[i].value === ttsConfig.language) {
+                                    ttsLanguageSelect.selectedIndex = i;
+                                    break;
+                                }
+                            }
+                        }
+
+                        // Manually trigger TTS service settings update
+                        const azureTtsSettings = document.getElementById('azureTtsSettings');
+                        const bytedanceTtsSettings = document.getElementById('bytedanceTtsSettings');
+                        const sovitsTtsSettings = document.getElementById('sovitsTtsSettings');
+                        if (azureTtsSettings && bytedanceTtsSettings && sovitsTtsSettings) {
+                            // Hide all TTS service-specific settings
+                            azureTtsSettings.style.display = 'none';
+                            bytedanceTtsSettings.style.display = 'none';
+                            sovitsTtsSettings.style.display = 'none';
+
+                            // Show selected service settings
+                            if (ttsConfig.active_service === 'azure') {
+                                azureTtsSettings.style.display = 'block';
+                            } else if (ttsConfig.active_service === 'bytedance') {
+                                bytedanceTtsSettings.style.display = 'block';
+                            } else if (ttsConfig.active_service === 'sovits') {
+                                sovitsTtsSettings.style.display = 'block';
+                            }
+                        }
+
+                        // Reset TTS model
+                        setTimeout(() => {
+                            const activeService = ttsConfig.active_service;
+                            let modelId = '';
+
+                            // Get current service model ID, prioritize top-level model_id, then use service-specific model_id
+                            if (activeService === 'azure') {
+                                modelId = ttsConfig.model_id || (ttsConfig.azure && ttsConfig.azure.model_id) || '';
+                                const azureModelSelect = document.getElementById('azureTtsModel');
+                                if (azureModelSelect && modelId) {
+                                    for (let i = 0; i < azureModelSelect.options.length; i++) {
+                                        if (azureModelSelect.options[i].value === modelId) {
+                                            azureModelSelect.selectedIndex = i;
+                                            console.log("Reset Azure TTS model to:", modelId);
+                                            break;
+                                        }
+                                    }
+                                }
+                            } else if (activeService === 'bytedance') {
+                                modelId = ttsConfig.model_id || (ttsConfig.bytedance && ttsConfig.bytedance.model_id) || '';
+                                const bytedanceModelSelect = document.getElementById('bytedanceTtsModel');
+                                if (bytedanceModelSelect && modelId) {
+                                    for (let i = 0; i < bytedanceModelSelect.options.length; i++) {
+                                        if (bytedanceModelSelect.options[i].value === modelId) {
+                                            bytedanceModelSelect.selectedIndex = i;
+                                            console.log("Reset Bytedance TTS model to:", modelId);
+                                            break;
+                                        }
+                                    }
+                                }
+                            } else if (activeService === 'sovits') {
+                                modelId = ttsConfig.model_id || (ttsConfig.sovits && ttsConfig.sovits.model_id) || 'Customize voice';
+                                const sovitsModelSelect = document.getElementById('sovitsTtsModel');
+                                if (sovitsModelSelect && modelId) {
+                                    for (let i = 0; i < sovitsModelSelect.options.length; i++) {
+                                        if (sovitsModelSelect.options[i].value === modelId) {
+                                            sovitsModelSelect.selectedIndex = i;
+                                            console.log("Reset GPT-SoVITS TTS model to:", modelId);
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }, 100);
+                    }
+
+                    // Reapply LLM configuration
+                    if (window.currentDeviceConfig.LLM) {
+                        const llmConfig = window.currentDeviceConfig.LLM;
+
+                        const llmServiceSelect = document.getElementById('llmActiveService');
+                        if (llmServiceSelect) {
+                            const activeService = llmConfig.active_service || '';
+
+                            for (let i = 0; i < llmServiceSelect.options.length; i++) {
+                                if (llmServiceSelect.options[i].value === activeService) {
+                                    llmServiceSelect.selectedIndex = i;
+
+                                    // Manually trigger service settings update
+                                    const openaiLlmSettings = document.getElementById('openaiLlmSettings');
+                                    const deepseekLlmSettings = document.getElementById('deepseekLlmSettings');
+                                    const groqLlmSettings = document.getElementById('groqLlmSettings');
+
+                                    if (openaiLlmSettings && deepseekLlmSettings && groqLlmSettings) {
+                                        // Hide all LLM service-specific settings
+                                        openaiLlmSettings.style.display = 'none';
+                                        deepseekLlmSettings.style.display = 'none';
+                                        groqLlmSettings.style.display = 'none';
+
+                                        // Show selected service settings
+                                        if (activeService === 'openai') {
+                                            openaiLlmSettings.style.display = 'block';
+                                        } else if (activeService === 'deepseek') {
+                                            deepseekLlmSettings.style.display = 'block';
+                                        } else if (activeService === 'groq') {
+                                            groqLlmSettings.style.display = 'block';
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
+
+                            // Reset LLM model
+                            setTimeout(() => {
+                                let modelId = '';
+
+                                // Get current service model ID, prioritize top-level model_id, then use service-specific model_id
+                                if (activeService === 'openai') {
+                                    modelId = llmConfig.model_id || (llmConfig.openai && llmConfig.openai.model_id) || '';
+                                    const openaiModelSelect = document.getElementById('openaiModel');
+                                    if (openaiModelSelect && modelId) {
+                                        for (let i = 0; i < openaiModelSelect.options.length; i++) {
+                                            if (openaiModelSelect.options[i].value === modelId) {
+                                                openaiModelSelect.selectedIndex = i;
+                                                console.log("Reset OpenAI LLM model to:", modelId);
+                                                break;
+                                            }
+                                        }
+                                    }
+                                } else if (activeService === 'deepseek') {
+                                    modelId = llmConfig.model_id || (llmConfig.deepseek && llmConfig.deepseek.model_id) || '';
+                                    const deepseekModelSelect = document.getElementById('deepseekModel');
+                                    if (deepseekModelSelect && modelId) {
+                                        for (let i = 0; i < deepseekModelSelect.options.length; i++) {
+                                            if (deepseekModelSelect.options[i].value === modelId) {
+                                                deepseekModelSelect.selectedIndex = i;
+                                                console.log("Reset Deepseek LLM model to:", modelId);
+                                                break;
+                                            }
+                                        }
+                                    }
+                                } else if (activeService === 'groq') {
+                                    modelId = llmConfig.model_id || (llmConfig.groq && llmConfig.groq.model_id) || '';
+                                    const groqModelSelect = document.getElementById('groqModel');
+                                    if (groqModelSelect && modelId) {
+                                        for (let i = 0; i < groqModelSelect.options.length; i++) {
+                                            if (groqModelSelect.options[i].value === modelId) {
+                                                groqModelSelect.selectedIndex = i;
+                                                console.log("Reset Groq LLM model to:", modelId);
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                            }, 100);
+                        }
+                    }
+                }
+            });
+
+            // Update service and model options
+            function updateServiceOptions() {
+                // Update STT service options
+                const sttServiceSelect = document.getElementById('sttActiveService');
+                if (sttServiceSelect && availableServices.STT.services) {
+                    sttServiceSelect.innerHTML = '';
+                    availableServices.STT.services.forEach(service => {
+                        const option = document.createElement('option');
+                        option.value = service;
+                        option.textContent = service === 'azure' ? 'Microsoft Azure Speech Services' : service;
+                        sttServiceSelect.appendChild(option);
+                    });
+                }
+
+                // Update TTS service options
+                const ttsServiceSelect = document.getElementById('ttsActiveService');
+                if (ttsServiceSelect && availableServices.TTS.enabled_services) {
+                    ttsServiceSelect.innerHTML = '';
+                    console.log("Available TTS services:", availableServices.TTS.enabled_services);
+
+                    // Use enabled_services array to display enabled services
+                    availableServices.TTS.enabled_services.forEach(service => {
+                        // Only add services that have corresponding models in services
+                        if (availableServices.TTS.services[service]) {
+                            const option = document.createElement('option');
+                            option.value = service;
+                            option.textContent = service === 'azure' ? 'Microsoft Azure Speech Services' :
+                                                service === 'bytedance' ? 'Bytedance TTS Service' :
+                                                service === 'sovits' ? 'GPT-SoVITS Customize Voice' : service;
+                            ttsServiceSelect.appendChild(option);
+                        }
+                    });
+
+                    // Don't trigger change event here to avoid interfering with configuration loading process
+                    // This event will be manually handled by updateSettingsUI function after configuration is fully loaded
+                }
+
+                // Update TTS language options
+                updateTtsLanguageOptions();
+
+                // TTS model options update will be automatically triggered after language options update
+
+                // Update LLM service options
+                const llmServiceSelect = document.getElementById('llmActiveService');
+                if (llmServiceSelect && availableServices.LLM.enabled_services) {
+                    // Save currently selected value (if any)
+                    const currentSelectedValue = llmServiceSelect.value;
+
+                    llmServiceSelect.innerHTML = '';
+                    console.log("Available LLM services:", availableServices.LLM.enabled_services);
+
+                    // Use enabled_services array to display enabled services
+                    availableServices.LLM.enabled_services.forEach(service => {
+                        // Only add services that have corresponding models in services
+                        if (availableServices.LLM.services[service]) {
+                            const option = document.createElement('option');
+                            option.value = service;
+
+                            // Add friendly display for service names
+                            let displayName = service;
+                            if (service === 'openai') {
+                                displayName = 'OpenAI';
+                            } else if (service === 'deepseek') {
+                                displayName = 'Deepseek';
+                            } else if (service === 'groq') {
+                                displayName = 'Groq';
+                            } else {
+                                displayName = service.charAt(0).toUpperCase() + service.slice(1); // Capitalize first letter
+                            }
+
+                            option.textContent = displayName;
+                            llmServiceSelect.appendChild(option);
+                        }
+                    });
+
+                    // Try to restore previously selected value
+                    if (currentSelectedValue) {
+                        for (let i = 0; i < llmServiceSelect.options.length; i++) {
+                            if (llmServiceSelect.options[i].value === currentSelectedValue) {
+                                llmServiceSelect.selectedIndex = i;
+                                break;
+                            }
+                        }
+                    }
+
+                    // Don't trigger change event during configuration loading to avoid interfering with configuration loading process
+                    // This event will be manually handled by updateSettingsUI function after configuration is fully loaded
+                }
+
+                // Update LLM model options
+                updateLlmModelOptions();
+            }
+
+            // Update TTS language options
+            function updateTtsLanguageOptions() {
+                const ttsServiceSelect = document.getElementById('ttsActiveService');
+                const ttsLanguageSelect = document.getElementById('ttsLanguage');
+
+                if (ttsServiceSelect && ttsLanguageSelect && availableServices.TTS.services) {
+                    // Get currently selected service
+                    const selectedService = ttsServiceSelect.value;
+                    console.log(`Update TTS language options, current service: ${selectedService}`);
+
+                    // Save currently selected language (if any)
+                    const currentLanguage = ttsLanguageSelect.value;
+
+                    // Clear language options
+                    ttsLanguageSelect.innerHTML = '';
+
+                    // Get languages supported by current service
+                    const supportedLanguages = [];
+                    if (availableServices.TTS.services[selectedService] &&
+                        availableServices.TTS.services[selectedService].languages) {
+                        // Add all languages supported by this service
+                        Object.keys(availableServices.TTS.services[selectedService].languages).forEach(lang => {
+                            supportedLanguages.push(lang);
+                        });
+                    }
+
+                    console.log(`Languages supported by service ${selectedService}:`, supportedLanguages);
+
+                    // If no supported languages, add Chinese by default
+                    if (supportedLanguages.length === 0) {
+                        const option = document.createElement('option');
+                        option.value = 'zh-CN';
+                        option.textContent = 'Chinese (Simplified)';
+                        ttsLanguageSelect.appendChild(option);
+                    } else {
+                        // Add all supported languages
+                        supportedLanguages.forEach(lang => {
+                            const option = document.createElement('option');
+                            option.value = lang;
+
+                            // Set language display name
+                            if (lang === 'zh-CN') {
+                                option.textContent = 'Chinese (Simplified)';
+                            } else if (lang === 'en-US') {
+                                option.textContent = 'English';
+                            } else {
+                                option.textContent = lang; // Use language code as display name
+                            }
+
+                            ttsLanguageSelect.appendChild(option);
+                        });
+                    }
+
+                    // Try to restore previously selected language
+                    let languageFound = false;
+                    for (let i = 0; i < ttsLanguageSelect.options.length; i++) {
+                        if (ttsLanguageSelect.options[i].value === currentLanguage) {
+                            ttsLanguageSelect.selectedIndex = i;
+                            languageFound = true;
+                            break;
+                        }
+                    }
+
+                    // If previous language is not available, select first option
+                    if (!languageFound && ttsLanguageSelect.options.length > 0) {
+                        ttsLanguageSelect.selectedIndex = 0;
+                    }
+
+                    // Only trigger language change event after configuration is fully loaded to avoid interfering with configuration loading process
+                    if (configFullyLoaded) {
+                        const event = new Event('change');
+                        ttsLanguageSelect.dispatchEvent(event);
+                    } else {
+                        // During configuration loading, directly update model options without triggering events
+                        updateTtsModelOptions();
+                    }
+                }
+            }
+
+            // Update TTS model options
+            function updateTtsModelOptions() {
+                const ttsServiceSelect = document.getElementById('ttsActiveService');
+                const ttsLanguageSelect = document.getElementById('ttsLanguage');
+                const azureTtsModelSelect = document.getElementById('azureTtsModel');
+                const bytedanceTtsModelSelect = document.getElementById('bytedanceTtsModel');
+                const sovitsTtsModelSelect = document.getElementById('sovitsTtsModel');
+
+                if (ttsServiceSelect && azureTtsModelSelect && bytedanceTtsModelSelect && sovitsTtsModelSelect && availableServices.TTS.services) {
+                    // Get currently selected language
+                    const selectedLanguage = ttsLanguageSelect ? ttsLanguageSelect.value : 'zh-CN';
+                    console.log(`Currently selected TTS language: ${selectedLanguage}`);
+
+                    // Update Azure TTS model options
+                    if (availableServices.TTS.services.azure) {
+                        azureTtsModelSelect.innerHTML = '';
+
+                        // Check if there are model lists categorized by language
+                        if (availableServices.TTS.services.azure.languages &&
+                            availableServices.TTS.services.azure.languages[selectedLanguage]) {
+                            // Use model list for current language
+                            console.log(`Using Azure TTS model list for ${selectedLanguage} language`);
+                            const languageModels = availableServices.TTS.services.azure.languages[selectedLanguage];
+
+                            languageModels.forEach(model => {
+                                const option = document.createElement('option');
+                                option.value = model.id;
+                                option.textContent = model.name;
+                                azureTtsModelSelect.appendChild(option);
+                                console.log(`Adding Azure TTS model (${selectedLanguage}): ${model.name} (${model.id})`);
+                            });
+                        } else {
+                            console.log(`Azure TTS has no model list for ${selectedLanguage} language`);
+                        }
+                    }
+
+                    // Update ByteDance TTS model options
+                    if (availableServices.TTS.services.bytedance) {
+                        bytedanceTtsModelSelect.innerHTML = '';
+
+                        // Check if there are model lists categorized by language
+                        if (availableServices.TTS.services.bytedance.languages &&
+                            availableServices.TTS.services.bytedance.languages[selectedLanguage]) {
+                            // Use model list for current language
+                            console.log(`Using ByteDance TTS model list for ${selectedLanguage} language`);
+                            const languageModels = availableServices.TTS.services.bytedance.languages[selectedLanguage];
+
+                            languageModels.forEach(model => {
+                                const option = document.createElement('option');
+                                option.value = model.id;
+                                option.textContent = model.name;
+                                bytedanceTtsModelSelect.appendChild(option);
+                                console.log(`Adding ByteDance TTS model (${selectedLanguage}): ${model.name} (${model.id})`);
+                            });
+                        } else {
+                            console.log(`ByteDance TTS has no model list for ${selectedLanguage} language`);
+                        }
+                    }
+
+                    // Update GPT-SoVITS TTS model options
+                    if (availableServices.TTS.services.sovits) {
+                        sovitsTtsModelSelect.innerHTML = '';
+
+                        // Check if there are model lists categorized by language
+                        if (availableServices.TTS.services.sovits.languages &&
+                            availableServices.TTS.services.sovits.languages[selectedLanguage]) {
+                            // Use model list for current language
+                            console.log(`Using GPT-SoVITS TTS model list for ${selectedLanguage} language`);
+                            const languageModels = availableServices.TTS.services.sovits.languages[selectedLanguage];
+
+                            languageModels.forEach(model => {
+                                const option = document.createElement('option');
+                                option.value = model.id;
+                                option.textContent = model.name;
+                                sovitsTtsModelSelect.appendChild(option);
+                                console.log(`Adding GPT-SoVITS TTS model (${selectedLanguage}): ${model.name} (${model.id})`);
+                            });
+                        } else {
+                            console.log(`GPT-SoVITS TTS has no model list for ${selectedLanguage} language`);
+                        }
+                    }
+                }
+            }
+
+            // Update LLM model options
+            function updateLlmModelOptions() {
+                const llmServiceSelect = document.getElementById('llmActiveService');
+                const openaiModelSelect = document.getElementById('openaiModel');
+                const deepseekModelSelect = document.getElementById('deepseekModel');
+                const groqModelSelect = document.getElementById('groqModel');
+
+                if (llmServiceSelect && openaiModelSelect && deepseekModelSelect && groqModelSelect && availableServices.LLM.services) {
+                    // Update OpenAI model options
+                    if (availableServices.LLM.services.openai) {
+                        openaiModelSelect.innerHTML = '';
+                        console.log("OpenAI LLM models:", availableServices.LLM.services.openai);
+
+                        availableServices.LLM.services.openai.forEach(model => {
+                            const option = document.createElement('option');
+
+                            // Check if it's new format (object containing id and name)
+                            if (model.id && model.name) {
+                                // New format - use id as value, name as display text
+                                option.value = model.id;
+                                option.textContent = model.name;
+                                console.log(`Adding OpenAI model: ${model.name} (${model.id})`);
+                            } else {
+                                // Old format
+                                option.value = model;
+                                option.textContent = model;
+                                console.log(`Adding OpenAI model: ${model}`);
+                            }
+
+                            openaiModelSelect.appendChild(option);
+                        });
+
+                        // If current device configuration exists, set user's currently selected model
+                        if (window.currentDeviceConfig && window.currentDeviceConfig.LLM) {
+                            const llmConfig = window.currentDeviceConfig.LLM;
+                            const currentModelId = llmConfig.model_id || (llmConfig.openai && llmConfig.openai.model_id) || '';
+                            if (currentModelId) {
+                                for (let i = 0; i < openaiModelSelect.options.length; i++) {
+                                    if (openaiModelSelect.options[i].value === currentModelId) {
+                                        openaiModelSelect.selectedIndex = i;
+                                        console.log("Set OpenAI currently selected model to:", currentModelId);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Update Deepseek model options
+                    if (availableServices.LLM.services.deepseek) {
+                        deepseekModelSelect.innerHTML = '';
+                        console.log("Deepseek LLM models:", availableServices.LLM.services.deepseek);
+
+                        availableServices.LLM.services.deepseek.forEach(model => {
+                            const option = document.createElement('option');
+
+                            // Check if it's new format (object containing id and name)
+                            if (model.id && model.name) {
+                                // New format - use id as value, name as display text
+                                option.value = model.id;
+                                option.textContent = model.name;
+                                console.log(`Adding Deepseek model: ${model.name} (${model.id})`);
+                            } else {
+                                // Old format
+                                option.value = model;
+                                option.textContent = model;
+                                console.log(`Adding Deepseek model: ${model}`);
+                            }
+
+                            deepseekModelSelect.appendChild(option);
+                        });
+
+                        // If current device configuration exists, set user's currently selected model
+                        if (window.currentDeviceConfig && window.currentDeviceConfig.LLM) {
+                            const llmConfig = window.currentDeviceConfig.LLM;
+                            const currentModelId = llmConfig.model_id || (llmConfig.deepseek && llmConfig.deepseek.model_id) || '';
+                            if (currentModelId) {
+                                for (let i = 0; i < deepseekModelSelect.options.length; i++) {
+                                    if (deepseekModelSelect.options[i].value === currentModelId) {
+                                        deepseekModelSelect.selectedIndex = i;
+                                        console.log("Set Deepseek currently selected model to:", currentModelId);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Update Groq model options
+                    if (availableServices.LLM.services.groq) {
+                        groqModelSelect.innerHTML = '';
+                        console.log("Groq LLM models:", availableServices.LLM.services.groq);
+
+                        availableServices.LLM.services.groq.forEach(model => {
+                            const option = document.createElement('option');
+
+                            // Check if it's new format (object containing id and name)
+                            if (model.id && model.name) {
+                                // New format - use id as value, name as display text
+                                option.value = model.id;
+                                option.textContent = model.name;
+                                console.log(`Adding Groq model: ${model.name} (${model.id})`);
+                            } else {
+                                // Old format
+                                option.value = model;
+
+                                // Add friendly display for model names
+                                let displayName = model;
+                                if (model.includes('llama-4-scout')) {
+                                    displayName = 'Llama 4 Scout 17B';
+                                } else if (model.includes('llama-4-maverick')) {
+                                    displayName = 'Llama 4 Maverick 17B';
+                                } else if (model.includes('llama-3.3-70b')) {
+                                    displayName = 'Llama 3.3 70B';
+                                } else if (model.includes('llama3-70b')) {
+                                    displayName = 'Llama 3 70B';
+                                } else if (model.includes('mixtral-8x7b')) {
+                                    displayName = 'Mixtral 8x7B';
+                                }
+
+                                option.textContent = displayName;
+                                console.log(`Adding Groq model: ${displayName} (${model})`);
+                            }
+
+                            groqModelSelect.appendChild(option);
+                        });
+
+                        // If current device configuration exists, set user's currently selected model
+                        if (window.currentDeviceConfig && window.currentDeviceConfig.LLM) {
+                            const llmConfig = window.currentDeviceConfig.LLM;
+                            const currentModelId = llmConfig.model_id || (llmConfig.groq && llmConfig.groq.model_id) || '';
+                            if (currentModelId) {
+                                for (let i = 0; i < groqModelSelect.options.length; i++) {
+                                    if (groqModelSelect.options[i].value === currentModelId) {
+                                        groqModelSelect.selectedIndex = i;
+                                        console.log("Set Groq currently selected model to:", currentModelId);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Update model settings display/hide based on currently selected service
+                    // Note: No need to call updateLlmServiceSettings here as it's already called in setupServiceSpecificSettings
+                }
+            }
+
+            // Service-specific settings display/hide logic
+            function setupServiceSpecificSettings() {
+                // TTS service selection
+                const ttsActiveService = document.getElementById('ttsActiveService');
+                const azureTtsSettings = document.getElementById('azureTtsSettings');
+                const bytedanceTtsSettings = document.getElementById('bytedanceTtsSettings');
+                const sovitsTtsSettings = document.getElementById('sovitsTtsSettings');
+
+                function updateTtsServiceSettings() {
+                    const selectedService = ttsActiveService.value;
+
+                    // Hide all TTS service-specific settings
+                    azureTtsSettings.style.display = 'none';
+                    bytedanceTtsSettings.style.display = 'none';
+                    sovitsTtsSettings.style.display = 'none';
+
+                    // Show selected service settings
+                    if (selectedService === 'azure') {
+                        azureTtsSettings.style.display = 'block';
+                        // Sync top-level model_id with currently selected service model
+                        if (configFullyLoaded) {
+                            const azureModel = document.getElementById('azureTtsModel');
+                            if (azureModel && azureModel.value) {
+                                // Trigger change detection
+                                checkForChanges();
+                            }
+                        }
+                    } else if (selectedService === 'bytedance') {
+                        bytedanceTtsSettings.style.display = 'block';
+                        // Sync top-level model_id with currently selected service model
+                        if (configFullyLoaded) {
+                            const bytedanceModel = document.getElementById('bytedanceTtsModel');
+                            if (bytedanceModel && bytedanceModel.value) {
+                                // Trigger change detection
+                                checkForChanges();
+                            }
+                        }
+                    } else if (selectedService === 'sovits') {
+                        sovitsTtsSettings.style.display = 'block';
+                        // Sync top-level model_id with currently selected service model
+                        if (configFullyLoaded) {
+                            const sovitsModel = document.getElementById('sovitsTtsModel');
+                            if (sovitsModel && sovitsModel.value) {
+                                // Trigger change detection
+                                checkForChanges();
+                            }
+                        }
+                    }
+                }
+
+                // Sync TTS service selection and model selection
+                function syncTtsModelWithService() {
+                    const selectedService = ttsActiveService.value;
+                    let selectedModelId = '';
+
+                    // Get corresponding model ID based on selected service
+                    if (selectedService === 'azure') {
+                        selectedModelId = document.getElementById('azureTtsModel').value;
+                    } else if (selectedService === 'bytedance') {
+                        selectedModelId = document.getElementById('bytedanceTtsModel').value;
+                    } else if (selectedService === 'sovits') {
+                        selectedModelId = document.getElementById('sovitsTtsModel').value;
+                    }
+
+                    // Update model_id in current configuration, which will be used when saving
+                    if (selectedModelId) {
+                        console.log(`Sync TTS model ID: selected ${selectedModelId} from ${selectedService} service`);
+
+                        // When collecting configuration, this model_id will be used as top-level model_id
+                        // This value will be read in collectCurrentConfig function
+
+                        // Record currently selected service and model for debugging
+                        console.log(`Current TTS service: ${selectedService}, model ID: ${selectedModelId}`);
+                    }
+                }
+
+                // Initialize and add event listeners
+                if (ttsActiveService) {
+                    updateTtsServiceSettings();
+                    ttsActiveService.addEventListener('change', function() {
+                        updateTtsServiceSettings();
+                        // Update language options
+                        updateTtsLanguageOptions();
+                        // Sync model selection
+                        syncTtsModelWithService();
+                    });
+                }
+
+                // Add change event listeners for each TTS model selection
+                const azureModel = document.getElementById('azureTtsModel');
+                const bytedanceModel = document.getElementById('bytedanceTtsModel');
+                const sovitsModel = document.getElementById('sovitsTtsModel');
+                const ttsLanguage = document.getElementById('ttsLanguage');
+
+                if (azureModel) {
+                    azureModel.addEventListener('change', syncTtsModelWithService);
+                }
+                if (bytedanceModel) {
+                    bytedanceModel.addEventListener('change', syncTtsModelWithService);
+                }
+                if (sovitsModel) {
+                    sovitsModel.addEventListener('change', syncTtsModelWithService);
+                }
+
+                // Add TTS language change event listener
+                if (ttsLanguage) {
+                    ttsLanguage.addEventListener('change', function() {
+                        console.log("TTS language changed, updating model options");
+                        // Update model options
+                        updateTtsModelOptions();
+                        // Sync model selection
+                        syncTtsModelWithService();
+                    });
+                }
+
+                // LLM service selection
+                const llmActiveService = document.getElementById('llmActiveService');
+                const openaiLlmSettings = document.getElementById('openaiLlmSettings');
+                const deepseekLlmSettings = document.getElementById('deepseekLlmSettings');
+                const groqLlmSettings = document.getElementById('groqLlmSettings');
+
+                function updateLlmServiceSettings() {
+                    const selectedService = llmActiveService.value;
+
+                    // Hide all LLM service-specific settings
+                    openaiLlmSettings.style.display = 'none';
+                    deepseekLlmSettings.style.display = 'none';
+                    groqLlmSettings.style.display = 'none';
+
+                    // Show selected service settings
+                    if (selectedService === 'openai') {
+                        openaiLlmSettings.style.display = 'block';
+                        // Sync top-level model_id with currently selected service model
+                        if (configFullyLoaded) {
+                            const openaiModel = document.getElementById('openaiModel');
+                            if (openaiModel && openaiModel.value) {
+                                // Trigger change detection
+                                checkForChanges();
+                            }
+                        }
+                    } else if (selectedService === 'deepseek') {
+                        deepseekLlmSettings.style.display = 'block';
+                        // Sync top-level model_id with currently selected service model
+                        if (configFullyLoaded) {
+                            const deepseekModel = document.getElementById('deepseekModel');
+                            if (deepseekModel && deepseekModel.value) {
+                                // Trigger change detection
+                                checkForChanges();
+                            }
+                        }
+                    } else if (selectedService === 'groq') {
+                        groqLlmSettings.style.display = 'block';
+                        // Sync top-level model_id with currently selected service model
+                        if (configFullyLoaded) {
+                            const groqModel = document.getElementById('groqModel');
+                            if (groqModel && groqModel.value) {
+                                // Trigger change detection
+                                checkForChanges();
+                            }
+                        }
+                    }
+                }
+
+                // Sync LLM service selection and model selection
+                function syncLlmModelWithService() {
+                    const selectedService = llmActiveService.value;
+                    let selectedModelId = '';
+
+                    // Get corresponding model ID based on selected service
+                    if (selectedService === 'openai') {
+                        selectedModelId = document.getElementById('openaiModel').value;
+                    } else if (selectedService === 'deepseek') {
+                        selectedModelId = document.getElementById('deepseekModel').value;
+                    } else if (selectedService === 'groq') {
+                        selectedModelId = document.getElementById('groqModel').value;
+                    }
+
+                    // Update model_id in current configuration, which will be used when saving
+                    if (selectedModelId) {
+                        console.log(`Sync LLM model ID: selected ${selectedModelId} from ${selectedService} service`);
+
+                        // Record currently selected service and model for debugging
+                        console.log(`Current LLM service: ${selectedService}, model ID: ${selectedModelId}`);
+                    }
+                }
+
+                // Initialize and add event listeners
+                if (llmActiveService) {
+                    updateLlmServiceSettings();
+                    llmActiveService.addEventListener('change', function() {
+                        updateLlmServiceSettings();
+                        syncLlmModelWithService();
+                    });
+                }
+
+                // Add change event listeners for each LLM model selection
+                const openaiModel = document.getElementById('openaiModel');
+                const deepseekModel = document.getElementById('deepseekModel');
+                const groqModel = document.getElementById('groqModel');
+
+                if (openaiModel) {
+                    openaiModel.addEventListener('change', syncLlmModelWithService);
+                }
+                if (deepseekModel) {
+                    deepseekModel.addEventListener('change', syncLlmModelWithService);
+                }
+                if (groqModel) {
+                    groqModel.addEventListener('change', syncLlmModelWithService);
+                }
+            }
+
+            // Navigation click events
+            navItems.forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetSection = this.getAttribute('data-section');
+
+                    // Update navigation item active state
+                    navItems.forEach(navItem => navItem.classList.remove('active'));
+                    this.classList.add('active');
+
+                    // Update content area display
+                    settingsSections.forEach(section => {
+                        section.classList.remove('active');
+                        if (section.id === targetSection) {
+                            section.classList.add('active');
+                        }
+                    });
+
+                    // Update URL hash without triggering page refresh
+                    history.pushState(null, null, `#${targetSection}`);
+                });
+            });
+
+            // Initialize page based on URL hash
+            function initFromHash() {
+                const hash = window.location.hash.substring(1);
+                if (hash) {
+                    const targetNavItem = document.querySelector(`.nav-item[data-section="${hash}"]`);
+                    if (targetNavItem) {
+                        targetNavItem.click();
+                    }
+                }
+            }
+
+            // Listen for hash changes
+            window.addEventListener('hashchange', initFromHash);
+
+            // Load device configuration
+            function loadDeviceConfig() {
+                console.log(`Loading configuration for device ${deviceId}...`);
+                socket.emit('request_current_config', { device_id: deviceId });
+            }
+
+            // Listen for configuration updates
+            socket.on('current_config', function(data) {
+                console.log("Received device configuration:", data);
+
+                // Display complete configuration structure in console for debugging
+                console.log("Device configuration structure:", JSON.stringify(data, null, 2));
+
+                updateSettingsUI(data);
+            });
+
+            // Update settings interface
+            function updateSettingsUI(config) {
+                // Save configuration data to global variable for use by other functions
+                window.currentDeviceConfig = config;
+
+                // Reset configuration loading flag before updating UI to prevent triggering change detection during loading
+                configFullyLoaded = false;
+                console.log("Starting to update settings interface, temporarily disabling change detection");
+
+                // Immediately hide save button
+                document.getElementById('saveSettings').style.display = 'none';
+
+                // Remove changes style from save container
+                const saveContainer = document.querySelector('.save-container');
+                if (saveContainer) {
+                    saveContainer.classList.remove('has-changes');
+                }
+
+                // System settings
+                if (config.system) {
+                    document.getElementById('deviceId').value = config.system.device_id || '';
+                    document.getElementById('deviceModel').value = config.system.model || '';
+                    document.getElementById('deviceVersion').value = config.system.version || '';
+                    document.getElementById('devicePassword').value = config.system.password || '';
+                }
+
+                // Wake word settings
+                if (config.wake_word) {
+                    document.getElementById('wakeWordEnabled').checked = config.wake_word.enabled || false;
+                }
+
+                // STT settings
+                if (config.STT) {
+
+                    // Set STT service
+                    const sttServiceSelect = document.getElementById('sttActiveService');
+                    if (sttServiceSelect) {
+                        const activeService = config.STT.active_service || '';
+                        for (let i = 0; i < sttServiceSelect.options.length; i++) {
+                            if (sttServiceSelect.options[i].value === activeService) {
+                                sttServiceSelect.selectedIndex = i;
+                                break;
+                            }
+                        }
+                    }
+
+                    // Set STT language
+                    const sttLanguageSelect = document.getElementById('sttLanguage');
+                    if (sttLanguageSelect) {
+                        const language = config.STT.language || 'zh-CN';
+                        for (let i = 0; i < sttLanguageSelect.options.length; i++) {
+                            if (sttLanguageSelect.options[i].value === language) {
+                                sttLanguageSelect.selectedIndex = i;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // TTS settings
+                if (config.TTS) {
+                    // Set TTS service
+                    const ttsServiceSelect = document.getElementById('ttsActiveService');
+                    if (ttsServiceSelect) {
+                        const activeService = config.TTS.active_service || '';
+                        for (let i = 0; i < ttsServiceSelect.options.length; i++) {
+                            if (ttsServiceSelect.options[i].value === activeService) {
+                                ttsServiceSelect.selectedIndex = i;
+                                break;
+                            }
+                        }
+                    }
+
+                    // Set TTS language
+                    const ttsLanguageSelect = document.getElementById('ttsLanguage');
+                    if (ttsLanguageSelect) {
+                        const language = config.TTS.language || 'zh-CN';
+                        for (let i = 0; i < ttsLanguageSelect.options.length; i++) {
+                            if (ttsLanguageSelect.options[i].value === language) {
+                                ttsLanguageSelect.selectedIndex = i;
+                                break;
+                            }
+                        }
+                    }
+
+                    // Note: TTS model selection will be set after available services are loaded to avoid duplicate operations
+                }
+
+                // LLM settings
+                if (config.LLM) {
+                    // Set LLM service
+                    const llmServiceSelect = document.getElementById('llmActiveService');
+                    if (llmServiceSelect) {
+                        const activeService = config.LLM.active_service || '';
+                        // If active_service is empty, try to infer service type from model_id
+                        let inferredService = activeService;
+                        if (!activeService && config.LLM.model_id) {
+                            // Infer service type from model_id
+                            if (config.LLM.model_id.includes('gpt') || config.LLM.model_id.includes('openai')) {
+                                inferredService = 'openai';
+                            } else if (config.LLM.model_id.includes('deepseek')) {
+                                inferredService = 'deepseek';
+                            } else if (config.LLM.model_id.includes('llama') || config.LLM.model_id.includes('groq')) {
+                                inferredService = 'groq';
+                            }
+                        }
+
+                        for (let i = 0; i < llmServiceSelect.options.length; i++) {
+                            if (llmServiceSelect.options[i].value === inferredService) {
+                                llmServiceSelect.selectedIndex = i;
+                                break;
+                            }
+                        }
+                    }
+
+                    // Note: LLM model selection will be set after available services are loaded to avoid duplicate operations
+
+                    // Set temperature and maximum generation length
+                    document.getElementById('llmTemperature').value = config.LLM.temperature || 1;
+                    document.getElementById('llmTemperatureValue').textContent = config.LLM.temperature || 1;
+                    document.getElementById('llmMaxTokens').value = config.LLM.max_tokens || 256;
+                    document.getElementById('llmSummaryTokens').value = config.LLM.summary_tokens || 3000;
+                    document.getElementById('llmLastMessagesNum').value = config.LLM.last_messages_num || 2;
+                }
+
+                // Music settings
+                if (config.music) {
+                    document.getElementById('musicResumePlay').checked = config.music.resume_play || false;
+                }
+
+                // Notification settings
+                if (config.time_notify) {
+                    document.getElementById('timeNotifyEnabled').checked = config.time_notify.enabled || false;
+                }
+
+                if (config.schedule_notify) {
+                    document.getElementById('scheduleNotifyEnabled').checked = config.schedule_notify.enabled || false;
+                }
+
+                // Weather settings
+                if (config.weather) {
+                    document.getElementById('weatherLocation').value = config.weather.location || '';
+
+                    // Display last update time
+                    const weatherLastUpdated = document.getElementById('weatherLastUpdated');
+                    if (weatherLastUpdated && config.weather.last_updated) {
+                        weatherLastUpdated.textContent = config.weather.last_updated;
+                    }
+                }
+
+                // MQTT settings
+                if (config.mqtt) {
+                    document.getElementById('mqttBroker').value = config.mqtt.broker || '';
+                    document.getElementById('mqttPort').value = config.mqtt.port || 1883;
+                    document.getElementById('mqttClientIdPrefix').value = config.mqtt.client_id_prefix || '';
+                    document.getElementById('mqttTopicPrefix').value = config.mqtt.topic_prefix || '';
+                }
+
+                // User personalization settings
+                if (config.user_personalization) {
+                    document.getElementById('userName').value = config.user_personalization.name || '';
+                    document.getElementById('userAge').value = config.user_personalization.age || '';
+                    document.getElementById('userHobbies').value = config.user_personalization.hobbies || '';
+                    document.getElementById('userRegion').value = config.user_personalization.region || '';
+                    document.getElementById('userProfile').value = config.user_personalization.profile || '';
+                }
+
+                // Device character personalization settings
+                if (config.device_role_personalization) {
+                    document.getElementById('deviceRoleName').value = config.device_role_personalization.name || '';
+                    document.getElementById('deviceRoleAge').value = config.device_role_personalization.age || '';
+                    document.getElementById('deviceRoleRelationship').value = config.device_role_personalization.relationship || '';
+                    document.getElementById('deviceRolePersonality').value = config.device_role_personalization.personality || '';
+                    document.getElementById('deviceRoleBackground').value = config.device_role_personalization.background || '';
+                }
+
+                // Update service-specific settings display/hide
+                setupServiceSpecificSettings();
+
+                // Use delay to ensure all UI updates are completed before saving original configuration
+                // This avoids triggering change detection during UI update process
+                setTimeout(function() {
+                    // Save current configuration as original configuration for change detection
+                    saveOriginalConfig();
+                }, 200);
+            }
+
+            // Configuration update function
+            function updateConfig(config) {
+                if (!socket) {
+                    alert("WebSocket not connected. Please try again.");
+                    return;
+                }
+
+                console.log("Sending configuration update:", config);
+
+                // Set timeout handling
+                let responseReceived = false;
+                const timeoutId = setTimeout(function() {
+                    if (!responseReceived) {
+                        console.error("Server response timeout");
+                        const statusMessage = document.getElementById('statusMessage');
+                        statusMessage.textContent = "Settings save failed: Server response timeout";
+                        statusMessage.className = "status-message status-error";
+                        statusMessage.style.display = "block";
+
+                        // Hide status message after 3 seconds
+                        setTimeout(function() {
+                            statusMessage.style.display = "none";
+                        }, 3000);
+                    }
+                }, 5000); // 5 second timeout
+
+                // Send update configuration request
+                socket.emit('update_config', {
+                    device_id: deviceId,
+                    config: config
+                }, function(response) {
+                    responseReceived = true;
+                    clearTimeout(timeoutId);
+
+                    const statusMessage = document.getElementById('statusMessage');
+
+                    console.log("Server response:", response);
+
+                    // Check if response exists
+                    if (!response) {
+                        console.error("Server did not return response");
+                    }
+
+                    statusMessage.textContent = "Settings saved successfully";
+                    statusMessage.className = "status-message status-success";
+
+                    // Immediately hide save button
+                    document.getElementById('saveSettings').style.display = 'none';
+
+                    // Remove changes style from save container
+                    const saveContainer = document.querySelector('.save-container');
+                    if (saveContainer) {
+                        saveContainer.classList.remove('has-changes');
+                    }
+
+                    // After successful update, use current configuration as new original configuration
+                    // Reset configuration loading flag first to prevent triggering change detection during save process
+                    configFullyLoaded = false;
+
+                    // Update original configuration using current form values
+                    updateOriginalConfigFromCurrentValues();
+
+                    // Set configuration fully loaded flag
+                    setTimeout(function() {
+                        configFullyLoaded = true;
+                        console.log("Configuration updated and saved as original configuration, enabling change detection");
+
+                        // Reload latest complete configuration
+                        loadDeviceConfig();
+                    }, 100);
+
+                    statusMessage.style.display = "block";
+
+                    // Hide status message after 3 seconds
+                    setTimeout(function() {
+                        statusMessage.style.display = "none";
+                    }, 3000);
+                });
+            }
+
+            // Save settings button click event
+            document.getElementById('saveSettings').addEventListener('click', function() {
+                // Check if any settings have changed
+                if (!hasConfigChanged()) {
+                    console.log("没有设置项发生变化，无需保存");
+                    return;
+                }
+
+                // 收集当前所有设置值
+                const currentConfig = {
+                    // 系统设置
+                    'system.password': document.getElementById('devicePassword').value,
+
+                    // 唤醒词设置
+                    'wake_word.enabled': document.getElementById('wakeWordEnabled').checked,
+
+                    // STT设置
+                    'STT.active_service': document.getElementById('sttActiveService').value,
+                    'STT.language': document.getElementById('sttLanguage').value,
+
+                    // TTS设置
+                    'TTS.active_service': document.getElementById('ttsActiveService').value,
+                    'TTS.language': document.getElementById('ttsLanguage').value,
+
+                    // 根据当前选择的服务设置顶层model_id
+                    'TTS.model_id': (() => {
+                        const activeService = document.getElementById('ttsActiveService').value;
+                        if (activeService === 'azure') {
+                            return document.getElementById('azureTtsModel').value;
+                        } else if (activeService === 'bytedance') {
+                            return document.getElementById('bytedanceTtsModel').value;
+                        }
+                        return '';
+                    })(),
+
+                    // TTS服务特定设置 - 为了向后兼容保留
+                    'TTS.azure.model_id': document.getElementById('azureTtsModel').value,
+                    'TTS.bytedance.model_id': document.getElementById('bytedanceTtsModel').value,
+                    'TTS.sovits.model_id': document.getElementById('sovitsTtsModel').value,
+
+                    // LLM设置
+                    'LLM.active_service': document.getElementById('llmActiveService').value,
+                    'LLM.temperature': parseFloat(document.getElementById('llmTemperature').value),
+                    'LLM.max_tokens': parseInt(document.getElementById('llmMaxTokens').value),
+                    'LLM.summary_tokens': parseInt(document.getElementById('llmSummaryTokens').value),
+                    'LLM.last_messages_num': parseInt(document.getElementById('llmLastMessagesNum').value),
+
+                    // 根据当前选择的服务设置顶层model_id
+                    'LLM.model_id': (() => {
+                        const activeService = document.getElementById('llmActiveService').value;
+                        if (activeService === 'openai') {
+                            return document.getElementById('openaiModel').value;
+                        } else if (activeService === 'deepseek') {
+                            return document.getElementById('deepseekModel').value;
+                        } else if (activeService === 'groq') {
+                            return document.getElementById('groqModel').value;
+                        }
+                        // 如果没有选择服务，保持原有的model_id不变
+                        // 从原始配置中获取当前的model_id
+                        return originalConfig['LLM.model_id'] || '';
+                    })(),
+
+                    // LLM服务特定设置 - 为了向后兼容保留
+                    'LLM.openai.model_id': document.getElementById('openaiModel').value,
+                    'LLM.deepseek.model_id': document.getElementById('deepseekModel').value,
+                    'LLM.groq.model_id': document.getElementById('groqModel').value,
+
+                    // 音乐设置
+                    'music.resume_play': document.getElementById('musicResumePlay').checked,
+
+                    // 通知设置
+                    'time_notify.enabled': document.getElementById('timeNotifyEnabled').checked,
+                    'schedule_notify.enabled': document.getElementById('scheduleNotifyEnabled').checked,
+
+                    // 天气设置
+                    'weather.location': document.getElementById('weatherLocation').value
+                };
+
+                // 创建一个只包含已更改设置项的配置对象
+                const changedConfig = {};
+
+                // 比较当前配置和原始配置，只保留已更改的设置项
+                for (const key in currentConfig) {
+                    if (currentConfig[key] !== originalConfig[key]) {
+                        changedConfig[key] = currentConfig[key];
+                    }
+                }
+
+                console.log("保存已更改的设置:", changedConfig);
+
+                // 将所有配置（不仅仅是更改的部分）转换为嵌套对象
+                const nestedConfig = {};
+                for (const key in currentConfig) {
+                    if (key.includes('.')) {
+                        const parts = key.split('.');
+                        let current = nestedConfig;
+
+                        // 创建嵌套结构
+                        for (let i = 0; i < parts.length - 1; i++) {
+                            const part = parts[i];
+                            if (!current[part]) {
+                                current[part] = {};
+                            }
+                            current = current[part];
+                        }
+
+                        // 设置最终值
+                        current[parts[parts.length - 1]] = currentConfig[key];
+                    } else {
+                        nestedConfig[key] = currentConfig[key];
+                    }
+                }
+
+                console.log("转换为嵌套结构的完整配置:", nestedConfig);
+
+                // 发送更新配置请求 - 使用嵌套结构的完整配置
+                updateConfig(nestedConfig);
+            });
+
+
+
+            // 解绑设备 - 使用模态框确认
+            document.getElementById('unbindDeviceBtn').addEventListener('click', function() {
+                showUnbindDeviceConfirmation();
+            });
+
+            // 连接成功后加载配置
+            socket.on('connect', function() {
+                console.log("Socket.IO连接成功，加载设备配置");
+                loadDeviceConfig();
+
+                // 请求可用服务和模型信息
+                requestAvailableServices();
+            });
+
+            // 初始加载
+            if (socket.connected) {
+                loadDeviceConfig();
+                requestAvailableServices();
+                requestCurrentSummary();
+            }
+
+            // 添加Reset Personality按钮事件监听器
+            const resetPersonalityBtn = document.getElementById('resetPersonalityBtn');
+            console.log("Reset Personality button found:", !!resetPersonalityBtn);
+            if (resetPersonalityBtn) {
+                resetPersonalityBtn.addEventListener('click', showResetPersonalityConfirmation);
+                console.log("Event listener added to Reset Personality button");
+            } else {
+                console.error("Reset Personality button not found!");
+            }
+
+            // 初始化页面
+            initFromHash();
+
+            // 初始化服务特定设置
+            setupServiceSpecificSettings();
+
+            // 初始化密码显示/隐藏功能
+            const togglePasswordBtn = document.getElementById('togglePassword');
+            const passwordInput = document.getElementById('devicePassword');
+            if (togglePasswordBtn && passwordInput) {
+                togglePasswordBtn.addEventListener('click', function() {
+                    // 切换密码显示/隐藏
+                    const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                    passwordInput.setAttribute('type', type);
+
+                    // 切换眼睛图标
+                    const showEye = this.querySelector('.show-text');
+                    const hideEye = this.querySelector('.hide-text');
+                    if (showEye && hideEye) {
+                        if (type === 'password') {
+                            showEye.style.display = '';
+                            hideEye.style.display = 'none';
+                        } else {
+                            showEye.style.display = 'none';
+                            hideEye.style.display = '';
+                        }
+                    }
+                });
+            }
+
+            // 存储原始配置值，用于检测变化
+            let originalConfig = {};
+            // 标记配置是否已完全加载
+            let configFullyLoaded = false;
+
+            // 添加值变化检测
+            function setupChangeDetection() {
+                // 为所有输入元素添加change事件监听器，检测值是否发生变化
+                const allInputs = document.querySelectorAll('input, select');
+                allInputs.forEach(input => {
+                    input.addEventListener('change', function() {
+                        // 只有在配置完全加载后才检测变化
+                        if (configFullyLoaded) {
+                            checkForChanges();
+                        }
+                    });
+                });
+
+                // 特殊处理LLM温度滑块
+                const llmTemperature = document.getElementById('llmTemperature');
+                const llmTemperatureValue = document.getElementById('llmTemperatureValue');
+                if (llmTemperature && llmTemperatureValue) {
+                    llmTemperature.addEventListener('input', function() {
+                        llmTemperatureValue.textContent = this.value;
+                    });
+                    llmTemperature.addEventListener('change', function() {
+                        // 只有在配置完全加载后才检测变化
+                        if (configFullyLoaded) {
+                            checkForChanges();
+                        }
+                    });
+                }
+            }
+
+            // 检查是否有设置项发生变化
+            function checkForChanges() {
+                // 如果配置尚未完全加载，则不执行变更检测
+                if (!configFullyLoaded) {
+                    console.log("配置尚未完全加载，跳过变更检测");
+                    return;
+                }
+
+                console.log("执行变更检测...");
+                const hasChanges = hasConfigChanged();
+                const saveButton = document.getElementById('saveSettings');
+                const saveContainer = document.querySelector('.save-container');
+
+                if (hasChanges) {
+                    console.log("检测到配置变更，显示保存按钮");
+                    saveButton.style.display = 'block';
+                    saveContainer.classList.add('has-changes');
+                } else {
+                    console.log("未检测到配置变更，隐藏保存按钮");
+                    saveButton.style.display = 'none';
+                    saveContainer.classList.remove('has-changes');
+                }
+            }
+
+            // 检查配置是否发生变化
+            function hasConfigChanged() {
+                // 如果原始配置为空，则认为没有变化
+                if (!originalConfig || Object.keys(originalConfig).length === 0) {
+                    console.log("原始配置为空，跳过变更检测");
+                    return false;
+                }
+
+                // 收集当前所有设置值
+                const currentConfig = {
+                    'system.password': document.getElementById('devicePassword').value,
+
+                    'wake_word.enabled': document.getElementById('wakeWordEnabled').checked,
+
+                    'STT.active_service': document.getElementById('sttActiveService').value,
+                    'STT.language': document.getElementById('sttLanguage').value,
+
+                    'TTS.active_service': document.getElementById('ttsActiveService').value,
+                    'TTS.language': document.getElementById('ttsLanguage').value,
+                    'TTS.model_id': (() => {
+                        const activeService = document.getElementById('ttsActiveService').value;
+                        if (activeService === 'azure') {
+                            return document.getElementById('azureTtsModel').value;
+                        } else if (activeService === 'bytedance') {
+                            return document.getElementById('bytedanceTtsModel').value;
+                        }
+                        return '';
+                    })(),
+
+                    'LLM.active_service': document.getElementById('llmActiveService').value,
+                    'LLM.temperature': parseFloat(document.getElementById('llmTemperature').value),
+                    'LLM.max_tokens': parseInt(document.getElementById('llmMaxTokens').value),
+                    'LLM.summary_tokens': parseInt(document.getElementById('llmSummaryTokens').value),
+                    'LLM.last_messages_num': parseInt(document.getElementById('llmLastMessagesNum').value),
+                    'LLM.model_id': (() => {
+                        const activeService = document.getElementById('llmActiveService').value;
+                        if (activeService === 'openai') {
+                            return document.getElementById('openaiModel').value;
+                        } else if (activeService === 'deepseek') {
+                            return document.getElementById('deepseekModel').value;
+                        } else if (activeService === 'groq') {
+                            return document.getElementById('groqModel').value;
+                        }
+                        // 如果没有选择服务，保持原有的model_id不变
+                        return originalConfig['LLM.model_id'] || '';
+                    })(),
+                    'LLM.openai.model_id': document.getElementById('openaiModel').value,
+                    'LLM.deepseek.model_id': document.getElementById('deepseekModel').value,
+                    'LLM.groq.model_id': document.getElementById('groqModel').value,
+
+                    'music.resume_play': document.getElementById('musicResumePlay').checked,
+
+                    'time_notify.enabled': document.getElementById('timeNotifyEnabled').checked,
+                    'schedule_notify.enabled': document.getElementById('scheduleNotifyEnabled').checked,
+
+                    'weather.location': document.getElementById('weatherLocation').value
+                };
+
+                // 记录当前配置和原始配置，方便调试
+                console.log("当前配置:", currentConfig);
+                console.log("原始配置:", originalConfig);
+
+                // 比较当前配置和原始配置
+                let hasChanges = false;
+                for (const key in currentConfig) {
+                    // 检查类型，确保比较正确
+                    const origValue = originalConfig[key];
+                    const currValue = currentConfig[key];
+
+                    // 特殊处理布尔值和数字
+                    if (typeof currValue === 'boolean' && typeof origValue !== 'boolean') {
+                        // 将字符串 'true'/'false' 转换为布尔值
+                        const origBool = origValue === true || origValue === 'true';
+                        if (currValue !== origBool) {
+                            console.log(`${key}已变更 (布尔值): ${origValue} (${typeof origValue}) -> ${currValue} (${typeof currValue})`);
+                            hasChanges = true;
+                        }
+                    } else if (typeof currValue === 'number' && typeof origValue !== 'number') {
+                        // 将字符串数字转换为数字
+                        const origNum = Number(origValue);
+                        if (!isNaN(origNum) && currValue !== origNum) {
+                            console.log(`${key}已变更 (数字): ${origValue} (${typeof origValue}) -> ${currValue} (${typeof currValue})`);
+                            hasChanges = true;
+                        }
+                    } else if (currValue !== origValue) {
+                        console.log(`${key}已变更: ${origValue} -> ${currValue}`);
+                        hasChanges = true;
+                    }
+                }
+
+                return hasChanges;
+            }
+
+            // 保存当前配置作为原始配置
+            function saveOriginalConfig() {
+                console.log("开始保存原始配置...");
+
+                // 确保在保存过程中不会触发变更检测
+                configFullyLoaded = false;
+
+                try {
+                    updateOriginalConfigFromCurrentValues();
+                } catch (error) {
+                    console.error("保存原始配置时出错:", error);
+                }
+
+                // 确保保存按钮隐藏
+                document.getElementById('saveSettings').style.display = 'none';
+
+                // 移除保存容器的变更样式
+                const saveContainer = document.querySelector('.save-container');
+                if (saveContainer) {
+                    saveContainer.classList.remove('has-changes');
+                }
+
+                // 使用延时来确保DOM操作完成后再启用变更检测
+                setTimeout(function() {
+                    // 标记配置已完全加载
+                    configFullyLoaded = true;
+                    console.log("配置已完全加载，启用变更检测");
+                }, 100);
+            }
+
+            // 从当前表单值更新原始配置
+            function updateOriginalConfigFromCurrentValues() {
+                originalConfig = {
+                    'system.password': document.getElementById('devicePassword').value,
+
+                    'wake_word.enabled': document.getElementById('wakeWordEnabled').checked,
+
+                    'STT.active_service': document.getElementById('sttActiveService').value,
+                    'STT.language': document.getElementById('sttLanguage').value,
+
+                    'TTS.active_service': document.getElementById('ttsActiveService').value,
+                    'TTS.language': document.getElementById('ttsLanguage').value,
+                    'TTS.model_id': (() => {
+                        const activeService = document.getElementById('ttsActiveService').value;
+                        if (activeService === 'azure') {
+                            return document.getElementById('azureTtsModel').value;
+                        } else if (activeService === 'bytedance') {
+                            return document.getElementById('bytedanceTtsModel').value;
+                        }
+                        return '';
+                    })(),
+
+                    'LLM.active_service': document.getElementById('llmActiveService').value,
+                    'LLM.temperature': parseFloat(document.getElementById('llmTemperature').value),
+                    'LLM.max_tokens': parseInt(document.getElementById('llmMaxTokens').value),
+                    'LLM.summary_tokens': parseInt(document.getElementById('llmSummaryTokens').value),
+                    'LLM.last_messages_num': parseInt(document.getElementById('llmLastMessagesNum').value),
+                    'LLM.model_id': (() => {
+                        const activeService = document.getElementById('llmActiveService').value;
+                        if (activeService === 'openai') {
+                            return document.getElementById('openaiModel').value;
+                        } else if (activeService === 'deepseek') {
+                            return document.getElementById('deepseekModel').value;
+                        } else if (activeService === 'groq') {
+                            return document.getElementById('groqModel').value;
+                        }
+                        // 如果没有选择服务，保持原有的model_id不变
+                        return originalConfig['LLM.model_id'] || '';
+                    })(),
+                    'LLM.openai.model_id': document.getElementById('openaiModel').value,
+                    'LLM.deepseek.model_id': document.getElementById('deepseekModel').value,
+                    'LLM.groq.model_id': document.getElementById('groqModel').value,
+
+                    'music.resume_play': document.getElementById('musicResumePlay').checked,
+
+                    'time_notify.enabled': document.getElementById('timeNotifyEnabled').checked,
+                    'schedule_notify.enabled': document.getElementById('scheduleNotifyEnabled').checked,
+
+                    'weather.location': document.getElementById('weatherLocation').value
+                };
+
+                console.log("原始配置已更新:", originalConfig);
+            }
+
+            // 调用设置变化检测
+            setupChangeDetection();
+
+            // 处理返回按钮点击事件
+            const backButton = document.getElementById('backButton');
+            if (backButton) {
+                backButton.addEventListener('click', function(e) {
+                    // 检查是否有未保存的更改
+                    if (configFullyLoaded && hasConfigChanged()) {
+                        // 如果有未保存的更改，提示用户
+                        if (!confirm('You have unsaved changes. Are you sure you want to leave this page?')) {
+                            return; // 用户取消，不执行返回操作
+                        }
+                    }
+
+                    // 直接返回到control_panel页面，而不是使用浏览器的历史记录
+                    window.location.href = `/control?device_id=${deviceId}`;
+                });
+            }
+        });
+
+        // Reset Personality功能
+        function showResetPersonalityConfirmation() {
+            console.log("Showing reset personality confirmation");
+            console.log("Current deviceId:", deviceId);
+            console.log("Socket connected:", socket && socket.connected);
+
+            const modal = document.getElementById('resetPersonalityModal1');
+            console.log("Modal element found:", !!modal);
+
+            if (modal) {
+                modal.style.display = 'block';
+                console.log("Modal display set to block");
+                console.log("Modal computed style display:", window.getComputedStyle(modal).display);
+            } else {
+                console.error("Modal resetPersonalityModal1 not found");
+                // 列出所有可用的模态框元素
+                const allModals = document.querySelectorAll('[id*="Modal"]');
+                console.log("Available modal elements:", Array.from(allModals).map(m => m.id));
+            }
+        }
+
+        function showResetConfirmation2() {
+            document.getElementById('resetPersonalityModal1').style.display = 'none';
+            document.getElementById('resetPersonalityModal2').style.display = 'block';
+        }
+
+        function showResetConfirmation3() {
+            document.getElementById('resetPersonalityModal2').style.display = 'none';
+            document.getElementById('resetPersonalityModal3').style.display = 'block';
+
+            // 监听输入框变化
+            const deleteInput = document.getElementById('deleteConfirmInput');
+            const finalBtn = document.getElementById('finalDeleteBtn');
+
+            deleteInput.addEventListener('input', function() {
+                if (this.value.toUpperCase() === 'DELETE') {
+                    finalBtn.disabled = false;
+                    finalBtn.style.background = 'var(--color-btn-danger-bg)';
+                } else {
+                    finalBtn.disabled = true;
+                    finalBtn.style.background = '#ccc';
+                }
+            });
+        }
+
+        function closeResetModals() {
+            document.getElementById('resetPersonalityModal1').style.display = 'none';
+            document.getElementById('resetPersonalityModal2').style.display = 'none';
+            document.getElementById('resetPersonalityModal3').style.display = 'none';
+
+            // 重置输入框
+            const deleteInput = document.getElementById('deleteConfirmInput');
+            if (deleteInput) {
+                deleteInput.value = '';
+            }
+
+            // 重置按钮状态
+            const finalBtn = document.getElementById('finalDeleteBtn');
+            if (finalBtn) {
+                finalBtn.disabled = true;
+                finalBtn.style.background = '#ccc';
+            }
+        }
+
+        function executeResetPersonality() {
+            console.log("Executing reset personality for device:", deviceId);
+
+            // 关闭所有模态框
+            closeResetModals();
+
+            // 显示加载状态
+            const statusMessage = document.getElementById('statusMessage');
+            statusMessage.textContent = 'Resetting personality settings...';
+            statusMessage.className = "status-message status-info";
+            statusMessage.style.display = "block";
+
+            // 发送WebSocket请求 - 使用页面已有的socket连接
+            if (socket && socket.connected) {
+                console.log("Sending reset_personality request via socket");
+                socket.emit('reset_personality', {
+                    device_id: deviceId
+                });
+            } else {
+                console.error("Socket not connected");
+                statusMessage.textContent = 'Connection error. Please try again.';
+                statusMessage.className = "status-message status-error";
+                statusMessage.style.display = "block";
+            }
+        }
+
+        // Unbind Device功能
+        function showUnbindDeviceConfirmation() {
+            console.log("Showing unbind device confirmation");
+            console.log("Current deviceId:", deviceId);
+
+            const modal = document.getElementById('unbindDeviceModal1');
+            console.log("Modal element found:", !!modal);
+
+            if (modal) {
+                modal.style.display = 'block';
+                console.log("Modal display set to block");
+            } else {
+                console.error("Modal unbindDeviceModal1 not found");
+            }
+        }
+
+        function showUnbindConfirmation2() {
+            document.getElementById('unbindDeviceModal1').style.display = 'none';
+            document.getElementById('unbindDeviceModal2').style.display = 'block';
+        }
+
+        function showUnbindConfirmation3() {
+            document.getElementById('unbindDeviceModal2').style.display = 'none';
+            document.getElementById('unbindDeviceModal3').style.display = 'block';
+
+            // 监听输入框变化
+            const unbindInput = document.getElementById('unbindConfirmInput');
+            const finalBtn = document.getElementById('finalUnbindBtn');
+
+            unbindInput.addEventListener('input', function() {
+                if (this.value.toUpperCase() === 'UNBIND') {
+                    finalBtn.disabled = false;
+                    finalBtn.style.background = 'var(--color-btn-danger-bg)';
+                } else {
+                    finalBtn.disabled = true;
+                    finalBtn.style.background = '#ccc';
+                }
+            });
+        }
+
+        function closeUnbindModals() {
+            document.getElementById('unbindDeviceModal1').style.display = 'none';
+            document.getElementById('unbindDeviceModal2').style.display = 'none';
+            document.getElementById('unbindDeviceModal3').style.display = 'none';
+
+            // 重置输入框
+            const unbindInput = document.getElementById('unbindConfirmInput');
+            if (unbindInput) {
+                unbindInput.value = '';
+            }
+
+            // 重置按钮状态
+            const finalBtn = document.getElementById('finalUnbindBtn');
+            if (finalBtn) {
+                finalBtn.disabled = true;
+                finalBtn.style.background = '#ccc';
+            }
+        }
+
+        function executeUnbindDevice() {
+            console.log("Executing unbind device for device:", deviceId);
+
+            // 关闭所有模态框
+            closeUnbindModals();
+
+            // 显示加载状态
+            const statusMessage = document.getElementById('statusMessage');
+            statusMessage.textContent = 'Unbinding device...';
+            statusMessage.className = "status-message status-info";
+            statusMessage.style.display = "block";
+
+            // 调用API解绑设备
+            fetch(`/api/unbind_device/${deviceId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'same-origin' // 包含cookies用于认证
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log("设备解绑成功");
+                    statusMessage.textContent = 'Device has been successfully unbound!';
+                    statusMessage.className = "status-message status-success";
+                    statusMessage.style.display = "block";
+
+                    // 2秒后跳转到discovery页面
+                    setTimeout(() => {
+                        window.location.href = '/discovery';
+                    }, 2000);
+                } else {
+                    console.error("设备解绑失败:", data.message);
+                    statusMessage.textContent = `Unbind failed: ${data.message}`;
+                    statusMessage.className = "status-message status-error";
+                    statusMessage.style.display = "block";
+
+                    // 3秒后隐藏状态消息
+                    setTimeout(() => {
+                        statusMessage.style.display = "none";
+                    }, 3000);
+                }
+            })
+            .catch(error => {
+                console.error('解绑设备时出错:', error);
+                statusMessage.textContent = 'Error unbinding device. Please try again later.';
+                statusMessage.className = "status-message status-error";
+                statusMessage.style.display = "block";
+
+                // 3秒后隐藏状态消息
+                setTimeout(() => {
+                    statusMessage.style.display = "none";
+                }, 3000);
+            });
+        }
+
+
+    </script>
+</body>
+</html>

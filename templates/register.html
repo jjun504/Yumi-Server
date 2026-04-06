@@ -1,0 +1,1727 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="{{ url_for('static', filename='Small_logo.png') }}" type="image/png">
+    <title>Register</title>
+    <!-- Boxicons icon library -->
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Be Vietnam Pro', sans-serif;
+        }
+
+        /* Background image implementation */
+        body {
+            min-height: 100vh;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Using pseudo-element for rotated background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url("{{ url_for('static', filename='cloud_background.png') }}") no-repeat center center;
+            background-size: cover;
+            transform: rotate(180deg);
+            z-index: -1;
+        }
+
+        .container {
+            background: transparent;
+            width: 100vw;
+            height: 100vh;
+            max-width: 100%;
+            position: relative;
+            overflow: hidden;
+            margin: 0;
+            display: flex;
+            flex-direction: row;
+            border-radius: 0;
+            box-shadow: none;
+            transform: rotate(180deg);
+            /* Rotate content back */
+        }
+
+        .form-content {
+            width: 60%;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: none;
+            position: relative;
+            overflow-y: auto;
+            order: 1;
+            /* Form on the left */
+        }
+
+        .blue-side {
+            width: 40%;
+            color: white;
+            padding: 2.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            order: 2;
+            /* Blue section on the right */
+        }
+
+        /* 移除蓝色背景和分割线相关的伪元素 */
+        .blue-side::before {
+            display: none;
+        }
+
+        .blue-side::after {
+            display: none;
+        }
+
+        .welcome-text {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            padding: 1.5rem;
+            animation: fadeIn 1s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .welcome-text h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1.2rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.7) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            position: relative;
+            text-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        /* 创建立体凹陷效果 */
+        .welcome-text h1:after {
+            content: attr(data-text);
+            position: absolute;
+            left: 0;
+            top: 0;
+            z-index: -1;
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            transform: translateY(2px);
+        }
+
+        .welcome-text p {
+            font-size: 1.3rem;
+            opacity: 0.95;
+            margin-bottom: 2rem;
+            font-weight: 300;
+            letter-spacing: 0.5px;
+            color: #ffffff;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        .welcome-text p:after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 3px;
+        }
+
+        /* 图标和特性列表样式 */
+        .features-list {
+            list-style: none;
+            margin: 2.5rem 0 1rem;
+            padding: 0;
+            text-align: left;
+            position: relative;
+            z-index: 2;
+        }
+
+        .features-list li {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.2rem;
+            padding: 0.8rem 1.2rem;
+            font-size: 1.05rem;
+            opacity: 0.95;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
+            transition: all 0.3s ease;
+            animation: slideIn 0.5s ease-out forwards;
+            animation-delay: calc(0.1s * var(--i));
+            opacity: 0;
+            transform: translateX(-20px);
+        }
+
+        @keyframes slideIn {
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .features-list li:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(5px);
+        }
+
+        .features-list li i {
+            margin-right: 0.8rem;
+            font-size: 1.4rem;
+            color: rgba(255, 255, 255, 1);
+            background: rgba(58, 117, 196, 0.3);
+            padding: 0.5rem;
+            border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 添加回应式调整 */
+        @media (max-width: 992px) {
+            .features-list {
+                margin: 1rem 0;
+            }
+
+            .features-list li {
+                font-size: 0.95rem;
+            }
+
+            .welcome-text h1 {
+                font-size: 2.8rem;
+            }
+        }
+
+        h1 {
+            color: #1f468a;
+            margin-bottom: 2.2rem;
+            font-size: 2rem;
+            font-weight: 700;
+            text-align: center;
+            letter-spacing: -0.5px;
+            position: relative;
+        }
+
+        h1::after {
+            content: '';
+            position: absolute;
+            bottom: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 4px;
+            background: linear-gradient(90deg, #3a75c4, #1a4784);
+            border-radius: 2px;
+        }
+
+        /* Input form container styles */
+        .form-inner {
+            max-width: 450px;
+            width: 100%;
+            margin: 0 100px 0px 0px;
+            background: white;
+            padding: 1rem 40px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            position: fixed;
+        }
+
+        /* Improved input field styles */
+        .floating-input-container {
+            position: relative;
+            margin-bottom: 1.8rem;
+            width: 100%;
+            height: 65px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+            border-radius: 14px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            z-index: 1;
+            /* Add this to establish stacking context */
+        }
+
+        .floating-input-container:hover {
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+        }
+
+        .floating-input-container:focus-within {
+            transform: translateY(-2px);
+            z-index: 100;
+        }
+
+        .floating-label {
+            position: absolute;
+            top: 50%;
+            left: 3.2rem;
+            transform: translateY(-50%);
+            font-size: 1rem;
+            color: #777;
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            padding: 0 4px;
+            background-color: transparent;
+            z-index: 1;
+        }
+
+        .input-field {
+            width: 100%;
+            height: 65px;
+            padding: 0 2.5rem 0 3.2rem;
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 14px;
+            font-size: 1.1rem;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            position: relative;
+            z-index: 0;
+            color: #333;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #3a75c4;
+            background: white;
+            box-shadow: 0 3px 12px rgba(58, 117, 196, 0.08);
+        }
+
+        .input-field:focus~.floating-label,
+        .input-field:not(:placeholder-shown)~.floating-label {
+            top: -1px;
+            left: 18px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #3a75c4;
+            background-color: white;
+            z-index: 2;
+            padding: 0 6px;
+            border-radius: 4px;
+            box-shadow: 0 0 0 2px white;
+        }
+
+        .input-icon-wrapper {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            z-index: 3;
+            width: 24px;
+            height: 24px;
+        }
+
+        /* 修复自动填充样式 */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus,
+        input:-webkit-autofill:active {
+            -webkit-box-shadow: 0 0 0 30px white inset !important;
+            -webkit-text-fill-color: #333 !important;
+            transition: background-color 5000s ease-in-out 0s;
+            background-color: white !important;
+        }
+
+        .input-icon-left {
+            left: 1.2rem;
+        }
+
+        .input-icon-right {
+            right: 1.2rem;
+            cursor: pointer;
+            background-color: #f5f7ff;
+            padding: 5px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .input-icon-right:hover {
+            background-color: #e6effd;
+        }
+
+        #confirm_password_input {
+            margin-top: 0px;
+        }
+
+        /* Register button styling */
+        .register-btn {
+            width: 100%;
+            height: 58px;
+            background: linear-gradient(135deg, #1a4784 0%, #3a75c4 70%, #4a8ed5 100%);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(26, 71, 132, 0.25);
+            margin-bottom: 1.5rem;
+            letter-spacing: 0.5px;
+        }
+
+        .register-btn:hover {
+            background: linear-gradient(135deg, #163d72, #2a62ad);
+            transform: scale(1.02);
+            box-shadow: 0 5px 15px rgba(26, 71, 132, 0.3);
+        }
+
+        .register-btn:active {
+            transform: scale(1);
+            box-shadow: 0 3px 10px rgba(26, 71, 132, 0.3);
+        }
+
+        /* Login link styling */
+        .login-link {
+            text-align: center;
+            margin-top: 2rem;
+            font-size: 1rem;
+            color: #666;
+            width: 100%;
+        }
+
+        .login-link a {
+            color: #3a75c4;
+            text-decoration: none;
+            font-weight: 600;
+            position: relative;
+            padding-bottom: 2px;
+            transition: all 0.25s ease;
+        }
+
+        .login-link a::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: #3a75c4;
+            transform: scaleX(0);
+            transition: transform 0.4s ease;
+            transform-origin: right;
+        }
+
+        .login-link a:hover {
+            color: #1a4784;
+        }
+
+        .login-link a:hover::after {
+            transform: scaleX(1);
+            transform-origin: left;
+        }
+
+        .alert {
+            padding: 0.85rem 1rem;
+            margin-bottom: 1.5rem;
+            border-radius: 10px;
+            font-weight: 500;
+            text-align: center;
+            width: 100%;
+            border-left: 4px solid;
+        }
+
+        .alert-error {
+            background-color: #fff5f5;
+            color: #e53e3e;
+            border-color: #e53e3e;
+        }
+
+        .alert-success {
+            background-color: #f0fff4;
+            color: #38a169;
+            border-color: #38a169;
+        }
+
+        /* Password strength indicator styles */
+        .password-strength-meter {
+            height: 5px;
+            width: 100%;
+            background-color: #e0e0e0;
+            margin: 8px 0;
+            border-radius: 3px;
+            position: relative;
+            overflow: hidden;
+            display: none;
+        }
+
+        .password-strength-meter span {
+            display: block;
+            height: 100%;
+            width: 0%;
+            border-radius: 3px;
+            transition: all 0.4s ease;
+        }
+
+        .password-strength-text {
+            font-size: 0.85rem;
+            display: block;
+            margin-top: 5px;
+            color: #666;
+            display: none;
+        }
+
+        .password-strength-meter.weak span {
+            width: 25%;
+            background-color: #ff4d4f;
+        }
+
+        .password-strength-meter.medium span {
+            width: 50%;
+            background-color: #faad14;
+        }
+
+        .password-strength-meter.strong span {
+            width: 75%;
+            background-color: #52c41a;
+        }
+
+        .password-strength-meter.very-strong span {
+            width: 100%;
+            background-color: #389e0d;
+        }
+
+        /* Enhanced Password Requirements Styles */
+        .password-requirements {
+            margin: 10px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            color: #666;
+            display: none;
+            position: absolute;
+            top: 70px;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+            /* Increase this value significantly */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+
+        .password-requirements ul {
+            padding-left: 0;
+            margin-top: 8px;
+            list-style: none;
+        }
+
+        .password-requirements li {
+            margin: 5px 0;
+            position: relative;
+            transition: color 0.3s ease;
+            padding-left: 25px;
+            list-style: none;
+        }
+
+        .password-requirements li.met {
+            color: #52c41a;
+        }
+
+        .password-requirements li.met::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #52c41a;
+        }
+
+        .password-requirements li:not(.met)::before {
+            content: "✗";
+            position: absolute;
+            left: 0;
+            color: #ff4d4f;
+        }
+
+        .floating-input-container.password-error input {
+            border-color: #ff4d4f;
+        }
+
+        .password-error-message {
+            color: #ff4d4f;
+            font-size: 0.85rem;
+            margin-top: 5px;
+            display: none;
+        }
+
+        /* 隐私政策勾选框样式 */
+        .privacy-policy-container {
+            margin-bottom: 1.5rem;
+            width: 100%;
+        }
+
+        .checkbox-wrapper {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            cursor: pointer;
+        }
+
+        .custom-checkbox {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 4px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: white;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .custom-checkbox i {
+            color: white;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .custom-checkbox.checked {
+            background: #3a75c4;
+            border-color: #3a75c4;
+        }
+
+        .custom-checkbox.checked i {
+            opacity: 1;
+        }
+
+        .checkbox-label {
+            font-size: 0.95rem;
+            color: #555;
+            line-height: 1.4;
+        }
+
+        .checkbox-label a {
+            color: #3a75c4;
+            text-decoration: none;
+            font-weight: 600;
+            position: relative;
+            transition: all 0.25s ease;
+        }
+
+        .checkbox-label a:hover {
+            color: #1a4784;
+        }
+
+        .checkbox-error {
+            color: #e53e3e;
+            font-size: 0.85rem;
+            margin-top: 5px;
+            display: none;
+        }
+
+        /* Animation for form elements */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(15px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .form-inner>* {
+            animation: fadeInUp 0.5s ease forwards;
+        }
+
+        .form-inner>*:nth-child(1) {
+            animation-delay: 0.1s;
+        }
+
+        .form-inner>*:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .form-inner>*:nth-child(3) {
+            animation-delay: 0.3s;
+        }
+
+        .form-inner>*:nth-child(4) {
+            animation-delay: 0.4s;
+        }
+
+        .form-inner>*:nth-child(5) {
+            animation-delay: 0.5s;
+        }
+
+        .alert-container {
+            width: 100%;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Layout adjustments for smaller screens */
+        @media (max-width: 1050px) {
+            body {
+                overflow: auto;
+                display: block;
+                height: auto;
+                background: url("{{ url_for('static', filename='cloud_background2.png') }}") no-repeat center top;
+                background-size: 100%;
+                position: relative;
+                background-attachment: scroll;
+                transform: rotate(0deg);
+            }
+
+            body::before {
+                display: none;
+            }
+
+            .container {
+                flex-direction: column;
+                height: auto;
+                min-height: 100vh;
+                width: 100%;
+                position: relative;
+                overflow: visible;
+                transform: rotate(0deg);
+                padding-top: 20px;
+            }
+
+            .form-content {
+                width: 90%;
+                margin: 90px auto 2rem;
+                padding: 1.8rem 1rem;
+                border-radius: 20px;
+                height: auto;
+                position: relative;
+                z-index: 2;
+                order: 2;
+            }
+
+            .blue-side {
+                width: 100%;
+                padding: 2rem 1.5rem;
+                height: auto;
+                min-height: 40vh;
+                position: relative;
+                z-index: 1;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                order: 1;
+            }
+
+            .welcome-text {
+                text-align: center;
+                padding: 0;
+                margin-bottom: 1rem;
+            }
+
+            .welcome-text h1 {
+                font-size: 2.8rem;
+                margin-bottom: 0.5rem;
+            }
+
+            .welcome-text p {
+                margin-bottom: 0.8rem;
+                font-size: 1.3rem;
+            }
+
+            .features-list {
+                margin: 0.5rem 0;
+                text-align: center;
+                display: flex;
+                flex-direction: column;
+                gap: 0.6rem;
+                align-items: center;
+            }
+
+            .features-list li {
+                padding-left: 0;
+                margin-bottom: 0;
+                font-size: 1.1rem;
+            }
+
+            .form-inner {
+                max-width: 420px;
+                padding: 2rem 0;
+            }
+        }
+
+        /* Adjust spacing for password requirements */
+        .floating-input-container:nth-of-type(3) {
+            margin-bottom: 1.8rem;
+            /* 默认使用普通的margin-bottom */
+            position: relative;
+        }
+
+        /* 当密码输入框有内容时应用的样式 */
+        .floating-input-container:nth-of-type(3).has-content {
+            margin-bottom: 60px;
+        }
+
+        .floating-input-container:nth-of-type(4) {
+            margin-top: -200px;
+        }
+
+        @media (max-width: 768px) {
+            .floating-input-container:nth-of-type(3) {
+                margin-bottom: 260px;
+            }
+
+            .floating-input-container:nth-of-type(4) {
+                margin-top: -220px;
+            }
+
+            .password-requirements {
+                width: 100%;
+                font-size: 0.8rem;
+            }
+
+            .welcome-text h1 {
+                font-size: 2.2rem;
+            }
+
+            .welcome-text p {
+                font-size: 1.1rem;
+            }
+
+            .features-list li {
+                font-size: 0.95rem;
+            }
+
+            .blue-side {
+                padding: 1.5rem 1rem;
+                min-height: auto;
+                max-height: none;
+                margin: 0;
+            }
+
+            .form-content {
+                width: 95%;
+                padding: 1.5rem 1rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .form-inner {
+                padding: 1rem 0;
+            }
+
+            h1 {
+                font-size: 1.8rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .floating-input-container {
+                margin-bottom: 1.5rem;
+                height: 55px;
+            }
+        }
+
+        @media (min-width: 1051px) {
+            body {
+                background: none;
+                overflow: hidden;
+            }
+
+            body::before {
+                background: url("{{ url_for('static', filename='cloud_background.png') }}") no-repeat center center fixed;
+                background-size: cover;
+                transform: rotate(180deg);
+            }
+
+            .container {
+                transform: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .welcome-text h1 {
+                font-size: 1.8rem;
+            }
+
+            .welcome-text p {
+                font-size: 1rem;
+                margin-bottom: 0.5rem;
+            }
+
+            .features-list {
+                gap: 0.4rem;
+            }
+
+            .features-list li {
+                font-size: 0.9rem;
+            }
+
+            .features-list li i {
+                font-size: 1.2rem;
+                margin-right: 0.5rem;
+            }
+
+            .form-content h1 {
+                font-size: 1.6rem;
+                margin-bottom: 1.2rem;
+            }
+
+            .floating-input-container {
+                height: 50px;
+                margin-bottom: 1.2rem;
+            }
+
+            .input-field {
+                height: 50px;
+                font-size: 0.95rem;
+                padding: 0 2rem 0 3rem;
+            }
+
+            .register-btn {
+                height: 50px;
+                font-size: 1rem;
+            }
+
+            .login-link {
+                font-size: 0.9rem;
+                margin-top: 1.5rem;
+            }
+        }
+
+        /* Modal window styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-container {
+            background-color: white;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .modal-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .modal-title {
+            margin: 0;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .modal-body {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .modal-icon {
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+
+        .modal-message {
+            text-align: center;
+            color: #555;
+        }
+
+        .modal-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #eee;
+            text-align: center;
+        }
+
+        .modal-btn-continue {
+            background-color: #3a75c4;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .modal-btn-continue:hover {
+            background-color: #2a62ad;
+        }
+
+        .modal-success .modal-icon {
+            color: #38a169;
+        }
+
+        .modal-error .modal-icon {
+            color: #e53e3e;
+        }
+
+        .modal-warning .modal-icon {
+            color: #dd6b20;
+        }
+
+        .modal-info .modal-icon {
+            color: #3182ce;
+        }
+
+        /* Additional CSS for password validation */
+        .password-valid {
+            border-color: #52c41a !important;
+        }
+
+        .password-invalid {
+            border-color: #ff4d4f !important;
+        }
+
+        /* Password field focus should always show requirements */
+        #password:focus+.password-requirements {
+            display: block;
+        }
+
+        /* Additional animation for requirement items */
+        .password-requirements li {
+            opacity: 0;
+            transform: translateY(5px);
+            animation: fadeInRequirement 0.5s forwards;
+        }
+
+        .password-requirements li:nth-child(1) {
+            animation-delay: 0.1s;
+        }
+
+        .password-requirements li:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .password-requirements li:nth-child(3) {
+            animation-delay: 0.3s;
+        }
+
+        .password-requirements li:nth-child(4) {
+            animation-delay: 0.4s;
+        }
+
+        .password-requirements li:nth-child(5) {
+            animation-delay: 0.5s;
+        }
+
+        @keyframes fadeInRequirement {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Make the password requirements persistent when visible */
+        .password-requirements.visible {
+            display: block;
+        }
+
+        /* Back button styles */
+        .back-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            color: #22125a;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .back-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: -1;
+        }
+
+        .back-button:hover::before {
+            opacity: 1;
+        }
+
+        .back-button i {
+            font-size: 2rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .back-button:hover i {
+            transform: scale(1.5);
+        }
+
+        @media (max-width: 768px) {
+            .back-button {
+                top: 15px;
+                left: 15px;
+                width: 40px;
+                height: 40px;
+            }
+
+            .back-button i {
+                font-size: 1.2rem;
+            }
+        }
+
+        /* Field Error Styles - Simplified */
+        .field-error {
+            color: #e53e3e;
+            font-size: 0.85rem;
+            margin-top: 0.13rem;
+            display: none;
+        }
+
+        .field-error.show {
+            display: block;
+        }
+
+        /* Input field error state */
+        .input-field.error {
+            border-color: #e53e3e !important;
+            box-shadow: 0 0 0 2px rgba(229, 62, 62, 0.1) !important;
+        }
+    </style>
+</head>
+
+<body>
+    <a href="{{ url_for('index') }}" class="back-button">
+        <i class='bx bx-arrow-back'></i>
+    </a>
+    <!-- Modal Dialog Component -->
+    <div class="modal-overlay" id="messageModal"
+        data-has-messages="{{ 'true' if get_flashed_messages(with_categories=true) else 'false' }}">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3 class="modal-title">Information</h3>
+            </div>
+            <div class="modal-body">
+                <div class="modal-icon">ℹ️</div>
+                <div class="modal-message" id="modalMessage"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn-continue" id="modalContinueBtn">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Flash Messages Container -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="hidden-message" data-message="{{ message }}" data-category="{{ category }}" style="display: none;">
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    <div class="container">
+        <!-- Form Section -->
+        <div class="form-content">
+            <div class="form-inner">
+                <h1>Create Account</h1>
+
+                <form method="POST" action="{{ url_for('auth.register') }}" id="registrationForm">
+                    <!-- Username Field -->
+                    <div class="floating-input-container">
+                        <div class="input-icon-wrapper input-icon-left">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                                fill="none" stroke="#aaa" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                        </div>
+                        <input type="text" id="username" name="username" class="input-field input-with-icon"
+                            placeholder=" ">
+                        <label for="username" class="floating-label">Username</label>
+                        <div class="field-error" id="usernameError">Username is required</div>
+                    </div>
+
+                    <!-- Email Field -->
+                    <div class="floating-input-container">
+                        <div class="input-icon-wrapper input-icon-left">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                                fill="none" stroke="#aaa" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z">
+                                </path>
+                                <polyline points="22,6 12,13 2,6"></polyline>
+                            </svg>
+                        </div>
+                        <input type="email" id="email" name="email" class="input-field input-with-icon" placeholder=" ">
+                        <label for="email" class="floating-label">Email</label>
+                        <div class="field-error" id="emailError">Email is required</div>
+                    </div>
+
+                    <!-- Password Field -->
+                    <div class="floating-input-container">
+                        <div class="input-icon-wrapper input-icon-left">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                                fill="none" stroke="#aaa" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            </svg>
+                        </div>
+                        <input type="password" id="password" name="password" class="input-field input-with-icon"
+                            placeholder=" ">
+                        <div class="input-icon-wrapper input-icon-right" id="togglePassword">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                                fill="none" stroke="#aaa" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" class="eye-icon">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                        </div>
+                        <label for="password" class="floating-label">Password</label>
+                        <div class="field-error" id="passwordError">Password is required</div>
+                        <div class="password-strength-meter"><span></span></div>
+                        <div class="password-strength-text"></div>
+                        <div class="password-requirements">
+                            <p>Password must include:</p>
+                            <ul>
+                                <li id="length" class="requirement">At least 8 characters</li>
+                                <li id="uppercase" class="requirement">At least one uppercase letter</li>
+                                <li id="lowercase" class="requirement">At least one lowercase letter</li>
+                                <li id="number" class="requirement">At least one number</li>
+                                <li id="special" class="requirement">At least one special character</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Confirm Password Field -->
+                    <div class="floating-input-container" id="confirm_password_input">
+                        <div class="input-icon-wrapper input-icon-left">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                                fill="none" stroke="#aaa" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            </svg>
+                        </div>
+                        <input type="password" id="confirm_password" name="confirm_password"
+                            class="input-field input-with-icon" placeholder=" ">
+                        <div class="input-icon-wrapper input-icon-right" id="toggleConfirmPassword">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                                fill="none" stroke="#aaa" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" class="eye-icon">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                        </div>
+                        <label for="confirm_password" class="floating-label">Confirm Password</label>
+                        <div class="field-error" id="confirmPasswordError">Confirm password is required</div>
+                    </div>
+
+                    <!-- Privacy Policy Checkbox -->
+                    <div class="privacy-policy-container">
+                        <div class="checkbox-wrapper" id="privacyCheckboxWrapper">
+                            <div class="custom-checkbox" id="privacyCheckbox">
+                                <i class='bx bx-check'></i>
+                            </div>
+                            <div class="checkbox-label">
+                                I agree to the <a href="{{ url_for('terms_of_use') }}">Terms of Service</a> and <a href="{{ url_for('privacy_policy') }}">Privacy Policy</a>
+                            </div>
+                        </div>
+                        <div class="checkbox-error" id="privacyCheckboxError">You must agree to the terms to continue
+                        </div>
+                        <input type="hidden" id="privacyAgreed" name="privacyAgreed" value="false">
+                    </div>
+
+                    <!-- Register Button -->
+                    <button type="submit" class="register-btn" id="registerButton">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="8.5" cy="7" r="4"></circle>
+                            <line x1="20" y1="8" x2="20" y2="14"></line>
+                            <line x1="23" y1="11" x2="17" y2="11"></line>
+                        </svg>
+                        Create Account
+                    </button>
+                </form>
+
+                <!-- Login Link -->
+                <div class="login-link">
+                    Already have an account? <a href="{{ url_for('auth.login_page') }}">Sign In</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Side Information Panel -->
+        <div class="blue-side">
+            <div class="welcome-text">
+                <h1 data-text="Join Us">Join Us</h1>
+                <p>Create your account to get started</p>
+            </div>
+
+            <ul class="features-list">
+                <li style="--i:1"><i class='bx bx-star'></i> Access All Yumi Features</li>
+                <li style="--i:2"><i class='bx bx-customize'></i> Personalization Dashboard</li>
+                <li style="--i:3"><i class='bx bx-devices'></i> Manage Your Smart Devices</li>
+                <li style="--i:4"><i class='bx bx-chat'></i> Talk Freely with Yumi Anytime</li>
+            </ul>
+        </div>
+    </div>
+
+    <input type="hidden" id="registrationSuccessFlag" value="{{ 'true' if registration_success else 'false' }}">
+    <input type="hidden" id="loginRedirectUrl" value="{{ url_for('auth.login_page') }}">
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // ===== Flash Messages and Modal Management =====
+            const messages = [];
+            document.querySelectorAll('.hidden-message').forEach(hiddenMessage => {
+                messages.push({
+                    message: hiddenMessage.dataset.message,
+                    category: hiddenMessage.dataset.category
+                });
+            });
+
+            const registrationSuccessElem = document.getElementById('registrationSuccessFlag');
+            const isRegistrationSuccess = registrationSuccessElem ? (registrationSuccessElem.value === 'true') : false;
+            let loginRedirectUrl = document.getElementById('loginRedirectUrl')?.value || '/login';
+
+            const messageModal = document.getElementById('messageModal');
+            const modalMessage = document.getElementById('modalMessage');
+            const modalContinueBtn = document.getElementById('modalContinueBtn');
+            const modalIcon = document.querySelector('.modal-icon');
+            const modalTitle = document.querySelector('.modal-title');
+            let pendingRedirect = null;
+
+            function showModal(message, category = 'info', redirectUrl = null) {
+                if (!message) return;
+                pendingRedirect = redirectUrl;
+                modalMessage.textContent = message;
+                let icon = '', title = '';
+                switch (category) {
+                    case 'success': icon = '✅'; title = 'Success'; break;
+                    case 'error': icon = '❌'; title = 'Error'; break;
+                    case 'warning': icon = '⚠️'; title = 'Warning'; break;
+                    default: icon = 'ℹ️'; title = 'Information';
+                }
+                modalIcon.textContent = icon;
+                modalTitle.textContent = title;
+                messageModal.className = 'modal-overlay active';
+                messageModal.classList.add(`modal-${category}`);
+            }
+
+            function closeModal() {
+                messageModal.classList.remove('active', 'modal-success', 'modal-error', 'modal-warning', 'modal-info');
+                if (pendingRedirect) {
+                    window.location.href = pendingRedirect;
+                    pendingRedirect = null;
+                }
+            }
+
+            modalContinueBtn?.addEventListener('click', closeModal);
+
+            if (isRegistrationSuccess) {
+                showModal('Registration successful, please sign in', 'success', loginRedirectUrl);
+            } else if (messages.length > 0) {
+                showModal(messages[0].message, messages[0].category);
+            }
+
+            // ===== Password Validation and Requirements =====
+            const passwordInput = document.getElementById('password');
+            const passwordRequirements = document.querySelector('.password-requirements');
+            const passwordStrengthMeter = document.querySelector('.password-strength-meter');
+            const passwordStrengthText = document.querySelector('.password-strength-text');
+            const requirementItems = {
+                'length': document.getElementById('length'),
+                'uppercase': document.getElementById('uppercase'),
+                'lowercase': document.getElementById('lowercase'),
+                'number': document.getElementById('number'),
+                'special': document.getElementById('special')
+            };
+
+            function validatePassword() {
+                if (!passwordInput) return;
+                const pwd = passwordInput.value;
+                const reqs = {
+                    length: pwd.length >= 8,
+                    uppercase: /[A-Z]/.test(pwd),
+                    lowercase: /[a-z]/.test(pwd),
+                    number: /[0-9]/.test(pwd),
+                    special: /[!@#$%^&*(),.?":{}|<>]/.test(pwd)
+                };
+                Object.entries(reqs).forEach(([key, met]) => {
+                    requirementItems[key]?.classList.toggle('met', met);
+                });
+                updatePasswordStrength(Object.values(reqs).filter(Boolean).length);
+
+                // 获取密码输入框的容器
+                const passwordContainer = passwordInput.closest('.floating-input-container');
+
+                // 有输入才显示，否则都隐藏
+                if (pwd) {
+                    passwordRequirements.style.display = 'block';
+                    passwordStrengthMeter.style.display = 'block';
+                    passwordStrengthText.style.display = 'block';
+                    // 添加has-content类以增加下边距
+                    passwordContainer.classList.add('has-content');
+                } else {
+                    passwordRequirements.style.display = 'none';
+                    passwordStrengthMeter.style.display = 'none';
+                    passwordStrengthText.style.display = 'none';
+                    // 移除has-content类以恢复正常下边距
+                    passwordContainer.classList.remove('has-content');
+                }
+            }
+
+            function updatePasswordStrength(score) {
+                passwordStrengthMeter.className = 'password-strength-meter';
+                if (score <= 1) {
+                    passwordStrengthMeter.classList.add('weak');
+                    passwordStrengthText.textContent = 'Weak';
+                } else if (score <= 3) {
+                    passwordStrengthMeter.classList.add('medium');
+                    passwordStrengthText.textContent = 'Medium';
+                } else if (score === 4) {
+                    passwordStrengthMeter.classList.add('strong');
+                    passwordStrengthText.textContent = 'Strong';
+                } else {
+                    passwordStrengthMeter.classList.add('very-strong');
+                    passwordStrengthText.textContent = 'Very Strong';
+                }
+            }
+
+            if (passwordInput) {
+                // 聚焦时显示要求
+                passwordInput.addEventListener('focus', () => {
+                    if (passwordInput.value) {
+                        passwordRequirements.style.display = 'block';
+                    }
+                });
+
+                // 实时校验
+                passwordInput.addEventListener('input', validatePassword);
+
+                // 失去焦点时隐藏要求（但如果有内容则保持显示直到点击其他地方）
+                passwordInput.addEventListener('blur', () => {
+                    // 延迟隐藏，给用户时间点击requirements区域
+                    setTimeout(() => {
+                        if (!passwordInput.matches(':focus') && !passwordRequirements.matches(':hover')) {
+                            passwordRequirements.style.display = 'none';
+                        }
+                    }, 150);
+                });
+            }
+
+            // 点击页面其他地方时隐藏requirements
+            document.addEventListener('click', (e) => {
+                const passwordContainer = passwordInput?.closest('.floating-input-container');
+                if (passwordContainer && !passwordContainer.contains(e.target)) {
+                    passwordRequirements.style.display = 'none';
+                }
+            });
+
+            // ===== Toggle Password Visibility =====
+            const togglePassword = document.getElementById('togglePassword');
+            if (togglePassword && passwordInput) {
+                togglePassword.addEventListener('click', function () {
+                    const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                    passwordInput.setAttribute('type', type);
+                    const eyeIcon = this.querySelector('.eye-icon');
+                    if (eyeIcon) {
+                        if (type === 'text') {
+                            eyeIcon.innerHTML = `
+                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                <line x1="1" y1="1" x2="23" y2="23"></line>
+                            `;
+                        } else {
+                            eyeIcon.innerHTML = `
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            `;
+                        }
+                    }
+                });
+            }
+
+            // ===== Confirm Password Toggle =====
+            const toggleConfirmPassword = document.getElementById('toggleConfirmPassword');
+            const confirmPasswordInput = document.getElementById('confirm_password');
+            if (toggleConfirmPassword && confirmPasswordInput) {
+                toggleConfirmPassword.addEventListener('click', function () {
+                    const type = confirmPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                    confirmPasswordInput.setAttribute('type', type);
+                    const eyeIcon = this.querySelector('.eye-icon');
+                    if (eyeIcon) {
+                        if (type === 'text') {
+                            eyeIcon.innerHTML = `
+                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                <line x1="1" y1="1" x2="23" y2="23"></line>
+                            `;
+                        } else {
+                            eyeIcon.innerHTML = `
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            `;
+                        }
+                    }
+                });
+            }
+
+            // ===== Input Field Focus Effects =====
+            document.querySelectorAll('.input-field').forEach(input => {
+                input.addEventListener('focus', function () {
+                    const icon = this.parentElement.querySelector('.input-icon-left svg');
+                    if (icon) icon.style.stroke = '#3a75c4';
+                });
+                input.addEventListener('blur', function () {
+                    if (!this.value) {
+                        const icon = this.parentElement.querySelector('.input-icon-left svg');
+                        if (icon) icon.style.stroke = '#aaa';
+                    }
+                });
+            });
+
+            // ===== Confirm Password Validation =====
+            if (confirmPasswordInput && passwordInput) {
+                confirmPasswordInput.addEventListener('input', function () {
+                    if (this.value && passwordInput.value) {
+                        if (this.value === passwordInput.value) {
+                            this.style.borderColor = '#52c41a';
+                            this.classList.add('match');
+                            this.classList.remove('error');
+                        } else {
+                            this.style.borderColor = '#ff4d4f';
+                            this.classList.add('error');
+                            this.classList.remove('match');
+                        }
+                    } else {
+                        this.style.borderColor = '';
+                        this.classList.remove('match', 'error');
+                    }
+                });
+            }
+
+            // ===== Privacy Policy Checkbox =====
+            const privacyCheckbox = document.getElementById('privacyCheckbox');
+            const privacyCheckboxWrapper = document.getElementById('privacyCheckboxWrapper');
+            const privacyCheckboxError = document.getElementById('privacyCheckboxError');
+            const privacyAgreedInput = document.getElementById('privacyAgreed');
+            let privacyAgreed = false;
+
+            if (privacyCheckbox && privacyCheckboxWrapper) {
+                privacyCheckboxWrapper.addEventListener('click', function () {
+                    privacyAgreed = !privacyAgreed;
+                    privacyCheckbox.classList.toggle('checked', privacyAgreed);
+                    privacyAgreedInput.value = privacyAgreed ? 'true' : 'false';
+
+                    if (privacyAgreed) {
+                        privacyCheckboxError.style.display = 'none';
+                    }
+                });
+            }
+
+            // ===== Custom Field Validation Functions =====
+            const usernameInput = document.getElementById('username');
+            const emailInput = document.getElementById('email');
+            const usernameError = document.getElementById('usernameError');
+            const emailError = document.getElementById('emailError');
+            const passwordError = document.getElementById('passwordError');
+            const confirmPasswordError = document.getElementById('confirmPasswordError');
+
+            function showFieldError(input, errorElement, message) {
+                input.classList.add('error');
+                errorElement.textContent = message;
+                errorElement.classList.add('show');
+            }
+
+            function hideFieldError(input, errorElement) {
+                input.classList.remove('error');
+                errorElement.classList.remove('show');
+            }
+
+            function validateUsername() {
+                const value = usernameInput.value.trim();
+                if (!value) {
+                    showFieldError(usernameInput, usernameError, 'This field should not be empty');
+                    return false;
+                } else if (value.length < 3) {
+                    showFieldError(usernameInput, usernameError, 'Username must be at least 3 characters');
+                    return false;
+                } else if (!/^[\w.@+-]+$/.test(value)) {
+                    showFieldError(usernameInput, usernameError, 'Username can only contain letters, numbers and @/./+/-/_');
+                    return false;
+                } else {
+                    hideFieldError(usernameInput, usernameError);
+                    return true;
+                }
+            }
+
+            function validateEmail() {
+                const value = emailInput.value.trim();
+                if (!value) {
+                    showFieldError(emailInput, emailError, 'This field should not be empty');
+                    return false;
+                } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+                    showFieldError(emailInput, emailError, 'Please enter a valid email address');
+                    return false;
+                } else {
+                    hideFieldError(emailInput, emailError);
+                    return true;
+                }
+            }
+
+            function validatePasswordField() {
+                const value = passwordInput.value.trim();
+                if (!value) {
+                    showFieldError(passwordInput, passwordError, 'This field should not be empty');
+                    return false;
+                } else {
+                    hideFieldError(passwordInput, passwordError);
+                    return true;
+                }
+            }
+
+            function validateConfirmPasswordField() {
+                const value = confirmPasswordInput.value.trim();
+                if (!value) {
+                    showFieldError(confirmPasswordInput, confirmPasswordError, 'This field should not be empty');
+                    return false;
+                } else {
+                    hideFieldError(confirmPasswordInput, confirmPasswordError);
+                    return true;
+                }
+            }
+
+            // Add real-time validation on blur
+            usernameInput.addEventListener('blur', validateUsername);
+            emailInput.addEventListener('blur', validateEmail);
+            passwordInput.addEventListener('blur', validatePasswordField);
+            confirmPasswordInput.addEventListener('blur', validateConfirmPasswordField);
+
+            // Clear errors on input
+            usernameInput.addEventListener('input', () => hideFieldError(usernameInput, usernameError));
+            emailInput.addEventListener('input', () => hideFieldError(emailInput, emailError));
+            passwordInput.addEventListener('input', () => hideFieldError(passwordInput, passwordError));
+            confirmPasswordInput.addEventListener('input', () => hideFieldError(confirmPasswordInput, confirmPasswordError));
+
+            // ===== Form Submission Validation =====
+            const form = document.getElementById('registrationForm');
+            if (form) {
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault(); // Always prevent default to use custom validation
+
+                    // Validate all fields
+                    const isUsernameValid = validateUsername();
+                    const isEmailValid = validateEmail();
+                    const isPasswordFieldValid = validatePasswordField();
+                    const isConfirmPasswordFieldValid = validateConfirmPasswordField();
+
+                    // Check if privacy policy is agreed
+                    if (!privacyAgreed) {
+                        privacyCheckboxError.style.display = 'block';
+                        showModal('Please agree to the Terms of Service and Privacy Policy', 'error');
+                        return;
+                    }
+
+                    // If any basic field validation fails, show modal and return
+                    if (!isUsernameValid || !isEmailValid || !isPasswordFieldValid || !isConfirmPasswordFieldValid) {
+                        showModal('The field was empty, please fill up all field before create account', 'error');
+                        return;
+                    }
+
+                    // Additional password validation
+                    const pwd = passwordInput.value.trim();
+                    const confirmPwd = confirmPasswordInput.value.trim();
+                    const meets = {
+                        length: /.{8,}/.test(pwd),
+                        uppercase: /[A-Z]/.test(pwd),
+                        lowercase: /[a-z]/.test(pwd),
+                        number: /[0-9]/.test(pwd),
+                        special: /[!@#$%^&*(),.?":{}|<>]/.test(pwd)
+                    };
+
+                    if (pwd !== confirmPwd) {
+                        showModal('Passwords do not match, please try again', 'error');
+                        return;
+                    }
+                    if (Object.values(meets).includes(false)) {
+                        showModal('Password does not meet security requirements, please ensure all conditions are met', 'error');
+                        passwordRequirements.style.display = 'block';
+                        return;
+                    }
+
+                    // If all validation passes, submit the form
+                    form.submit();
+                });
+            }
+        });
+    </script>
+
+</body>
+
+</html>

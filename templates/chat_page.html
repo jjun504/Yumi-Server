@@ -1,0 +1,3451 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="{{ url_for('static', filename='Small_logo.png') }}" type="image/png">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+    <title>Smart Assistant Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        /* 保持代码注释使用原始字体 */
+        code, pre, .code-comment {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        }
+
+        :root {
+            --primary-color: #4a6fa5;
+            --primary-light: #6b8cb8;
+            --primary-dark: #3a5980;
+            --accent-color: #5d9cec;
+            --user-msg-color: #e3f2fd;
+            --assistant-msg-color: #f5f5f5;
+            --bg-color: #f8f9fa;
+            --header-height: 60px;
+            --input-height: 70px;
+            --quick-commands-height: 58px;
+            --nav-width: 80px;
+            /* 左侧导航栏宽度 */
+            --time-slot-height: 120px; /* 时间槽高度 */
+            --time-column-width: 120px; /* 时间列宽度 */
+            --day-column-min-width: 100px; /* 日期列最小宽度 */
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: linear-gradient(to bottom right, rgba(93, 156, 236, 0.05), rgba(74, 111, 165, 0.1));
+            height: 100vh;
+            width: 100vw;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            display: flex;
+        }
+
+        /* 左侧导航栏样式 */
+        .side-nav {
+            width: var(--nav-width);
+            height: 100vh;
+            background-color: white;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 12px;
+            z-index: 20;
+        }
+
+        .nav-item {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+            cursor: pointer;
+            color: var(--primary-dark);
+            transition: all 0.3s ease;
+        }
+
+        .nav-item:hover {
+            background-color: rgba(93, 156, 236, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .nav-item.active {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            position: relative;
+        }
+
+        .chat-container {
+            flex: 1;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            height: var(--header-height);
+            background-color: var(--primary-color);
+            background-image: linear-gradient(to right, var(--primary-color), var(--primary-light));
+            color: white;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            position: relative;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+        }
+
+        .back-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            color: white;
+        }
+
+        .header-title {
+            flex: 1;
+            text-align: center;
+            font-size: 1.2em;
+            font-weight: 500;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            height: calc(100vh - var(--header-height) - var(--input-height));
+            transition: height 0.3s ease;
+            background-color: transparent;
+            scroll-behavior: smooth;
+            position: relative; /* 添加相对定位 */
+        }
+
+        .message-container {
+            display: flex;
+            margin-bottom: 10px;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message-container.user {
+            justify-content: flex-end;
+        }
+
+        .message-container.assistant {
+            justify-content: flex-start;
+        }
+
+        .message {
+            padding: 12px 16px;
+            border-radius: 18px;
+            max-width: 70%;
+            word-wrap: break-word;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
+        }
+
+        .user .message {
+            background-color: var(--user-msg-color);
+            border-bottom-right-radius: 5px;
+            color: #333;
+        }
+
+        .assistant .message {
+            background-color: var(--assistant-msg-color);
+            border-bottom-left-radius: 5px;
+            color: #333;
+        }
+
+        .message-time {
+            font-size: 0.7em;
+            color: #888;
+            margin-top: 5px;
+            align-self: flex-end;
+        }
+
+        .audio-control {
+            margin-bottom: 10px;
+            width: 100%;
+            min-width: 250px;
+            background-color: rgba(255, 255, 255, 0.5);
+            border-radius: 25px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .audio-error {
+            font-size: 0.8em;
+            color: #666;
+            margin-bottom: 8px;
+            padding: 8px 10px;
+            background-color: rgba(255, 255, 255, 0.7);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        .audio-error .icon {
+            margin-right: 8px;
+            color: #ff6b6b;
+        }
+
+        .center-box {
+            margin: 12px auto;
+            width: fit-content;
+            padding: 10px 18px;
+            border-radius: 20px;
+            background-color: rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        .center-box:hover {
+            background-color: rgba(255, 255, 255, 0.95);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .center-box .icon {
+            font-size: 1.2em;
+        }
+
+        .music-box,
+        .web-search-box {
+            display: flex;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            overflow: hidden;
+            max-width: 350px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+            text-decoration: none;
+            color: #333;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .music-box:hover,
+        .web-search-box:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+        }
+
+        .music-box {
+            height: 90px;
+        }
+
+        .music-info {
+            flex: 1;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+        }
+
+        .music-title,
+        .web-search-title {
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .music-author {
+            font-size: 0.85em;
+            color: var(--accent-color);
+            cursor: pointer;
+        }
+
+        .music-views {
+            font-size: 0.75em;
+            color: #888;
+            margin-top: 2px;
+        }
+
+        .music-thumbnail {
+            width: 90px;
+            height: 90px;
+            object-fit: cover;
+        }
+
+        .web-search-box {
+            padding: 12px 16px;
+        }
+
+        .quick-commands {
+            padding: 10px 15px;
+            background-color: white;
+            overflow-x: auto;
+            white-space: nowrap;
+            display: flex;
+            gap: 10px;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+            scrollbar-width: none;
+            /* Firefox */
+            max-height: 0;
+            padding: 0 15px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .quick-commands.show {
+            max-height: var(--quick-commands-height);
+            padding: 10px 15px;
+        }
+
+        .quick-commands::-webkit-scrollbar {
+            display: none;
+            /* Chrome, Safari, Edge */
+        }
+
+        .quick-command-btn {
+            padding: 8px 15px;
+            background-color: var(--bg-color);
+            border: none;
+            border-radius: 18px;
+            font-size: 0.9em;
+            color: var(--primary-dark);
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .quick-command-btn:hover {
+            background-color: var(--accent-color);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+        }
+
+        .quick-command-btn:active {
+            transform: translateY(0);
+        }
+
+        .quick-command-btn.clicked {
+            animation: pulse 0.3s ease;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(0.95);
+                background-color: var(--accent-color);
+                color: white;
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        /* 加载动画样式 */
+        .typing-indicator-container {
+            position: relative;
+            width: 100%;
+            padding: 0;
+            z-index: 10;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            margin-top: 15px; /* 增加顶部边距，确保在对话下方 */
+            display: flex;
+            flex-direction: column;
+        }
+
+        .typing-indicator-container .message-container {
+            margin-bottom: 0;
+            justify-content: flex-start; /* 确保在左侧 */
+        }
+
+        .typing-indicator-container.show {
+            opacity: 1;
+        }
+
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            background-color: var(--assistant-msg-color);
+            border-radius: 18px;
+            border-bottom-left-radius: 5px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            min-height: 42px;
+            /* 与消息高度一致 */
+            max-width: 70%;
+            margin-left: 10px; /* 添加左侧边距 */
+        }
+
+        .typing-indicator .dot {
+            display: inline-block;
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            margin: 0 3px;
+            opacity: 0.7;
+        }
+
+        .typing-indicator .dot:nth-child(1) {
+            animation: bounce 1.2s infinite 0s;
+        }
+
+        .typing-indicator .dot:nth-child(2) {
+            animation: bounce 1.2s infinite 0.2s;
+        }
+
+        .typing-indicator .dot:nth-child(3) {
+            animation: bounce 1.2s infinite 0.4s;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            60%,
+            100% {
+                transform: translateY(0);
+            }
+
+            30% {
+                transform: translateY(-5px);
+            }
+        }
+
+        .chat-input-container {
+            height: var(--input-height);
+            padding: 15px 20px;
+            background-color: white;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            position: relative;
+            z-index: 5;
+        }
+
+        .toggle-commands-btn {
+            background-color: var(--bg-color);
+            color: var(--primary-dark);
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .toggle-commands-btn:hover {
+            background-color: var(--accent-color);
+            color: white;
+            transform: scale(1.05);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+        }
+
+        .toggle-commands-btn:active {
+            transform: scale(0.95);
+        }
+
+        .toggle-commands-btn.active {
+            background-color: var(--accent-color);
+            color: white;
+            transform: rotate(45deg);
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px 18px;
+            border: none;
+            border-radius: 24px;
+            outline: none;
+            font-size: 1em;
+            background-color: #f0f2f5;
+            transition: all 0.3s ease;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .chat-input:focus {
+            background-color: #fff;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05), 0 0 0 2px rgba(93, 156, 236, 0.2);
+        }
+
+        .send-button {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .send-button:hover {
+            background-color: var(--primary-color);
+            transform: scale(1.05);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .send-button:active {
+            transform: scale(0.95);
+        }
+
+        /* 设备选择样式 */
+        .device-selection {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin: 20px auto;
+            max-width: 400px;
+        }
+
+        .device-btn {
+            padding: 14px;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            background: white;
+            color: #333;
+            font-weight: 500;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .device-btn:hover {
+            background-color: var(--accent-color);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        /* 自定义滚动条 */
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background-color: rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(0, 0, 0, 0.2);
+        }
+
+        /* 日历视图样式 */
+        .calendar-view {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - var(--header-height));
+            /* Remove input height from calculation since we hide it in calendar view */
+            background-color: #fff;
+            overflow: hidden;
+        }
+
+        /* 日历工具栏 */
+        .calendar-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid #dadce0;
+            background-color: #fff;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            position: relative;
+            z-index: 5;
+        }
+
+        .calendar-toolbar-left,
+        .calendar-toolbar-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .calendar-menu-btn,
+        .calendar-nav-btn,
+        .calendar-action-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #5f6368;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .calendar-menu-btn:hover,
+        .calendar-nav-btn:hover,
+        .calendar-action-btn:hover {
+            background-color: rgba(60, 64, 67, 0.08);
+        }
+
+        .calendar-logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #5f6368;
+            font-size: 1.2rem;
+            font-weight: 500;
+            margin-right: 8px;
+        }
+
+        .today-btn {
+            background-color: #fff;
+            color: #1a73e8;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin: 0 10px;
+        }
+
+        .today-btn:hover {
+            background-color: rgba(26, 115, 232, 0.04);
+            box-shadow: 0 1px 2px rgba(60, 64, 67, 0.3);
+        }
+
+        .calendar-nav {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .calendar-title {
+            font-size: 1.2rem;
+            font-weight: 400;
+            color: #3c4043;
+            margin-left: 8px;
+        }
+
+        .calendar-actions {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* 日历主体 */
+        .calendar-container {
+            display: flex;
+            flex: 1;
+            overflow-y: auto; /* 允许垂直滚动 */
+            overflow-x: visible; /* 允许内容水平溢出 */
+            background-color: #ffffff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            margin: 0 8px 8px 8px;
+            border: 1px solid #dadce0;
+            scroll-behavior: auto; /* 移除平滑滚动，使用默认滚动行为 */
+            height: calc(100vh - 120px); /* 固定高度 */
+            min-height: 600px; /* 确保最小高度 */
+            position: relative; /* 为内部sticky元素提供参考 */
+            contain: none; /* 确保内容不被裁剪 */
+        }
+
+        /* 左侧迷你日历 */
+        .mini-calendar {
+            width: 256px;
+            padding: 16px;
+            border-right: 1px solid #e0e0e0;
+            background-color: #fff;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            transition: width 0.3s ease, padding 0.3s ease, border-right 0.3s ease;
+            position: sticky; /* 固定位置 */
+            top: 0; /* 固定在顶部 */
+            align-self: flex-start; /* 确保在容器顶部 */
+            z-index: 5; /* 确保在其他元素上方 */
+            max-height: calc(100vh - 120px); /* 限制最大高度 */
+        }
+
+        .mini-calendar.collapsed {
+            width: 0;
+            padding: 0;
+            border-right: none;
+            overflow: hidden;
+        }
+
+        .mini-calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .mini-calendar.collapsed .mini-calendar-header {
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .mini-calendar-toggle {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #5f6368;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            margin-right: 8px;
+        }
+
+        .mini-calendar.collapsed .mini-calendar-toggle {
+            margin-right: 0;
+            transform: rotate(90deg);
+        }
+
+        .mini-calendar-toggle:hover {
+            background-color: rgba(60, 64, 67, 0.08);
+        }
+
+        .mini-calendar-title {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #3c4043;
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .mini-calendar.collapsed .mini-calendar-title {
+            display: none;
+        }
+
+        .mini-calendar-nav {
+            display: flex;
+            gap: 4px;
+        }
+
+        .mini-calendar.collapsed .mini-calendar-nav {
+            flex-direction: column;
+        }
+
+        .mini-nav-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #5f6368;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .mini-nav-btn:hover {
+            background-color: rgba(60, 64, 67, 0.08);
+        }
+
+        .mini-calendar-content {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .mini-calendar.collapsed .mini-calendar-content {
+            display: none;
+        }
+
+        .mini-calendar-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            margin-bottom: 4px;
+        }
+
+        .mini-weekday {
+            text-align: center;
+            font-size: 0.75rem;
+            color: #70757a;
+            padding: 4px 0;
+        }
+
+        .mini-calendar-days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            margin-bottom: 16px;
+        }
+
+        .mini-day {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: #3c4043;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative; /* 添加相对定位，使事件标记可以绝对定位 */
+        }
+
+        .mini-day:hover {
+            background-color: rgba(60, 64, 67, 0.08);
+        }
+
+        .mini-day.today {
+            background-color: #1a73e8;
+            color: #fff;
+            font-weight: 500;
+        }
+
+        .mini-day.selected {
+            background-color: #d2e3fc;
+            color: #1a73e8;
+            font-weight: 500;
+        }
+
+        .mini-day.other-month {
+            color: #70757a;
+        }
+
+        .event-marker {
+            position: absolute;
+            bottom: 2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: #4285f4;
+            box-shadow: 0 0 2px rgba(0, 0, 0, 0.2);
+            animation: pulse-marker 2s infinite;
+        }
+
+        @keyframes pulse-marker {
+            0% {
+                transform: translateX(-50%) scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: translateX(-50%) scale(1.2);
+                opacity: 0.8;
+            }
+            100% {
+                transform: translateX(-50%) scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* 右侧周视图 */        .week-view {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative; /* 为固定定位的子元素提供参考 */
+            overflow: auto; /* 改为auto使容器可滚动 */
+            contain: none; /* 确保内容不被裁剪 */
+            transition: width 0.3s ease; /* 添加宽度过渡效果 */
+            height: 100%; /* 确保容器高度 */
+        }
+
+        .week-header {
+            display: flex;
+            border-bottom: 1px solid #dadce0;
+            background-color: #f8f9fa;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            position: sticky; /* 使用sticky定位，使其在滚动时保持可见 */
+            top: 0; /* 固定在顶部 */
+            z-index: 20; /* 提高z-index确保在其他内容上方，包括mini日历 */
+            width: 100%; /* 使用百分比宽度 */
+            flex-shrink: 0; /* 防止收缩 */
+            transition: width 0.3s ease; /* 添加宽度过渡效果 */
+        }
+
+        /* 为头部腾出空间 */
+        .week-content {
+            padding-top: 0; /* 移除额外的padding */
+        }
+
+        .time-column-header {
+            width: var(--time-column-width);
+            border-right: 1px solid #dadce0;
+            padding: 15px 0;
+            background-color: #f8f9fa;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        .day-headers {
+            display: flex;
+            flex: 1;
+            overflow-x: auto;
+            /* 允许水平滚动 */
+            table-layout: fixed; /* 确保表格布局固定 */
+            width: 100%; /* 确保宽度填满父容器 */
+            transition: width 0.3s ease; /* 添加宽度过渡效果 */
+        }
+
+        .day-header {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 15px 0;
+            border-right: 1px solid #dadce0;
+            min-width: var(--day-column-min-width);
+            /* 确保每列有足够的宽度 */
+            width: calc(100% / 7); /* 确保7列等宽 */
+            text-align: center;
+            box-sizing: border-box;
+            background-color: #f8f9fa;
+        }
+
+        .day-header:last-child {
+            border-right: none;
+        }
+
+        .day-name {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #5f6368;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .day-number {
+            font-size: 1.8rem;
+            font-weight: 500;
+            color: #3c4043;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            margin: 6px auto;
+            box-sizing: border-box;
+            transition: background-color 0.2s ease;
+        }
+
+        .day-header:hover .day-number:not(.today) {
+            background-color: #f1f3f4;
+        }
+
+        .day-header.today .day-number {
+            background-color: #1a73e8;
+            color: #fff;
+        }
+
+        .day-header.selected .day-number {
+            background-color: #d2e3fc;
+            color: #1a73e8;
+        }        .week-content {
+            display: flex;
+            flex: 1;
+            overflow: visible; /* 允许内容在week-view中滚动 */
+            min-height: 3000px; /* 增加高度确保所有时间段都能显示 */
+            position: relative;
+            height: auto; /* 自动高度 */
+        }
+
+        .time-column {
+            width: var(--time-column-width);
+            border-right: 1px solid #dadce0;
+            display: flex;
+            flex-direction: column;
+            background-color: #f8f9fa;
+            flex-shrink: 0; /* 防止收缩 */
+            position: sticky;
+            left: 0;
+            z-index: 2;
+            height: auto; /* 自动高度 */
+            min-height: 3000px; /* 确保足够高 */
+        }
+
+        .time-slot {
+            height: var(--time-slot-height);
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #5f6368;
+            border-bottom: 1px solid #dadce0;
+            position: relative;
+            box-sizing: border-box;
+            text-align: center;
+            width: 100%;
+            letter-spacing: 0.5px;
+        }
+
+        .day-columns {
+            display: flex;
+            flex: 1;
+            width: calc(100% - var(--time-column-width)); /* 减去时间列宽度 */
+            position: relative;
+            min-height: 3000px; /* 增加高度确保所有时间段都能显示 */
+            height: auto; /* 自动高度 */
+            table-layout: fixed; /* 确保表格布局固定 */
+        }
+
+        .day-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #dadce0;
+            position: relative;
+            min-width: var(--day-column-min-width);
+            /* 确保每列有足够的宽度 */
+            width: calc(100% / 7); /* 确保7列等宽 */
+            box-sizing: border-box;
+            background-color: #ffffff;
+            min-height: 3000px; /* 确保足够高 */
+            height: 100%; /* 填满父容器 */
+        }
+
+        .day-column:last-child {
+            border-right: none;
+        }
+
+        .hour-slot {
+            height: var(--time-slot-height, 120px); /* 使用变量以便统一管理高度 */
+            border-bottom: 1px solid #dadce0;
+            position: relative;
+            box-sizing: border-box;
+            width: 100%; /* 确保宽度填满父容器 */
+            transition: background-color 0.2s ease;
+        }
+
+        .hour-slot.has-event {
+            background-color: rgba(66, 133, 244, 0.08); /* 淡蓝色背景表示有事件 */
+            border-left: 4px solid #4285f4; /* 左侧蓝色边框标记 */
+            box-shadow: inset 0 0 5px rgba(66, 133, 244, 0.1); /* 内阴影增强视觉效果 */
+        }
+
+        .hour-slot:hover {
+            background-color: rgba(66, 133, 244, 0.1); /* 鼠标悬停时加深背景色 */
+        }
+
+        .event {
+            position: absolute;
+            left: 8px;
+            right: 8px;
+            background-color: #4285f4;
+            color: #fff;
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            overflow: hidden;
+            cursor: pointer;
+            z-index: 15; /* 增加z-index确保事件元素在最上层 */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            /* height: calc(100% - 16px) !important; 确保高度一致，留出上下间距 */
+            margin: 8px 0;
+            pointer-events: auto; /* 确保事件可点击 */
+        }
+
+        .event:hover {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            transform: translateY(-2px);
+            transition: all 0.2s ease;
+        }
+
+        .event-content {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+
+        .event-title {
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .event-time {
+            font-size: 0.8rem;
+            opacity: 0.9;
+            margin-top: 2px;
+        }
+
+        .event-details-popup {
+            position: fixed;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+            padding: 16px;
+            min-width: 250px;
+            max-width: 350px;
+            z-index: 1000;
+            color: #333;
+        }
+
+        .event-details-popup h3 {
+            margin-top: 0;
+            margin-bottom: 12px;
+            color: #4285f4;
+            font-size: 1.1rem;
+        }
+
+        .event-details-popup p {
+            margin: 8px 0;
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+
+        .popup-close-btn {
+            background-color: #f1f3f4;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            margin-top: 12px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .popup-close-btn:hover {
+            background-color: #e8eaed;
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 768px) {
+            .mini-calendar {
+                display: none;
+            }
+
+            .time-column,
+            .time-column-header {
+                width: 60px;
+                --time-column-width: 60px; /* 更新变量值 */
+            }
+
+            .day-columns {
+                width: calc(100% - var(--time-column-width)); /* 使用变量 */
+            }
+
+            .time-slot {
+                font-size: 0.7rem;
+                padding: 0 4px;
+            }
+
+            .day-name {
+                font-size: 0.7rem;
+            }
+
+            .day-number {
+                font-size: 1.2rem;
+                width: 30px;
+                height: 30px;
+            }
+        }
+
+        /* 迷你日历收起时的样式调整 */
+        /* 迷你日历收起和展开时的周视图宽度调整 */
+        .week-view {
+            transition: width 0.3s ease;
+            width: calc(100% - 256px); /* 默认宽度，日历展开时 */
+        }
+
+        .mini-calendar.collapsed+.week-view {
+            width: 100%; /* 日历收起时占满宽度 */
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .message {
+                max-width: 85%;
+            }
+
+            .chat-input-container {
+                padding: 12px 15px;
+            }
+
+            .chat-input {
+                padding: 10px 15px;
+            }
+
+            .send-button {
+                width: 40px;
+                height: 40px;
+            }
+
+            .calendar-weekdays,
+            .calendar-days {
+                gap: 2px;
+            }
+
+            .calendar-day {
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 左侧导航栏 -->
+    <div class="side-nav">
+        <div class="nav-item active" data-nav="chat" title="聊天">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path
+                    d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+        </div>
+        <div class="nav-item" data-nav="schedule" title="日程">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" />
+                <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" />
+                <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" />
+                <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </svg>
+        </div>
+    </div>
+
+    <!-- 主内容区域 -->
+    <div class="main-content">
+        <div class="chat-container">
+            <div class="chat-header">
+                <button class="back-button" onclick="history.back()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M19 12H5" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                        <path d="M12 19L5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                    </svg>
+                </button>
+                <div class="header-title">Smart Assistant Chat</div>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <!-- Chat history will be loaded here dynamically -->
+                <!-- Loading animation will be displayed in the message stream -->
+            </div>
+
+            <!-- Calendar View -->
+            <div class="calendar-view" id="calendarView" style="display: none;">
+                <!-- Calendar Top Navigation Bar -->
+                <div class="calendar-toolbar">
+                    <div class="calendar-toolbar-left">
+                        <button class="mini-calendar-toggle" id="miniCalendarToggle">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3 12H21" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" />
+                                <path d="M3 6H21" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" />
+                                <path d="M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" />
+                            </svg>
+                        </button>
+                        <div class="calendar-logo">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round" />
+                                <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round" />
+                                <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round" />
+                                <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <span>Calendar</span>
+                        </div>
+                        <button class="today-btn" id="todayBtn">Today</button>
+                        <div class="calendar-nav">
+                            <button class="calendar-nav-btn" id="prevBtn">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2"
+                                        stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </button>
+                            <button class="calendar-nav-btn" id="nextBtn">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2"
+                                        stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="calendar-title" id="calendarTitle">May 18, 2025</div>
+                    </div>
+                </div>
+
+                <!-- Calendar Main Body -->
+                <div class="calendar-container">
+                    <!-- Left Mini Calendar -->
+                    <div class="mini-calendar" id="miniCalendar">
+                        <div class="mini-calendar-header">
+                            <div class="mini-calendar-title" id="miniCalendarTitle">May 2025</div>
+                            <div class="mini-calendar-nav">
+                                <button class="mini-nav-btn" id="miniPrevBtn">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                        xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2"
+                                            stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                </button>
+                                <button class="mini-nav-btn" id="miniNextBtn">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                        xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2"
+                                            stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mini-calendar-content" id="miniCalendarContent">
+                            <div class="mini-calendar-weekdays">
+                                <div class="mini-weekday">Sun</div>
+                                <div class="mini-weekday">Mon</div>
+                                <div class="mini-weekday">Tue</div>
+                                <div class="mini-weekday">Wed</div>
+                                <div class="mini-weekday">Thu</div>
+                                <div class="mini-weekday">Fri</div>
+                                <div class="mini-weekday">Sat</div>
+                            </div>
+                            <div class="mini-calendar-days" id="miniCalendarDays">
+                                <!-- Mini calendar dates will be generated here dynamically -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Week View -->
+                    <div class="week-view">
+                        <!-- Week View Header -->
+                        <div class="week-header">
+                            <div class="time-column-header"></div>
+                            <div class="day-headers" id="dayHeaders">
+                                <!-- Date headers will be generated here dynamically -->
+                            </div>
+                        </div>
+
+                        <!-- Week View Content -->
+                        <div class="week-content">
+                            <div class="time-column">
+                                <div class="time-slot">00:00</div>
+                                <div class="time-slot">01:00</div>
+                                <div class="time-slot">02:00</div>
+                                <div class="time-slot">03:00</div>
+                                <div class="time-slot">04:00</div>
+                                <div class="time-slot">05:00</div>
+                                <div class="time-slot">06:00</div>
+                                <div class="time-slot">07:00</div>
+                                <div class="time-slot">08:00</div>
+                                <div class="time-slot">09:00</div>
+                                <div class="time-slot">10:00</div>
+                                <div class="time-slot">11:00</div>
+                                <div class="time-slot">12:00</div>
+                                <div class="time-slot">13:00</div>
+                                <div class="time-slot">14:00</div>
+                                <div class="time-slot">15:00</div>
+                                <div class="time-slot">16:00</div>
+                                <div class="time-slot">17:00</div>
+                                <div class="time-slot">18:00</div>
+                                <div class="time-slot">19:00</div>
+                                <div class="time-slot">20:00</div>
+                                <div class="time-slot">21:00</div>
+                                <div class="time-slot">22:00</div>
+                                <div class="time-slot">23:00</div>
+                            </div>
+                            <div class="day-columns" id="dayColumns">
+                                <!-- Date columns will be generated here dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="quick-commands" id="quickCommands">
+                <button class="quick-command-btn" data-command="whats the time">Current time</button>
+                <button class="quick-command-btn" data-command="hows the weather">Today's weather</button>
+                <button class="quick-command-btn" data-command="weather forecast">Weather Forecast</button>
+                <button class="quick-command-btn" data-command="play soft music">Soft music</button>
+                <button class="quick-command-btn" data-command="search for Malaysia News">Today's news</button>
+            </div>
+            <div class="chat-input-container">
+                <button class="toggle-commands-btn" id="toggleCommandsBtn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 5V19" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                        <path d="M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                    </svg>
+                </button>
+                <input type="text" class="chat-input" id="messageInput" placeholder="Enter message..." autocomplete="off">
+                <button class="send-button" id="sendButton">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                        <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 修复PCM转换器脚本路径 -->
+    <script src="{{ url_for('static', filename='js/pcm-to-wav.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageInput = document.getElementById('messageInput');
+            const sendButton = document.getElementById('sendButton');
+
+            // Get user ID and device ID from template variables
+            const userId = "{{ session.user_id|default('user001') }}";
+            const deviceId = "{{ device_id }}";
+            const deviceName = "{{ device_name }}";
+            console.log("Initializing Socket.IO connection, User ID:", userId);
+
+            // Display current device information
+            const headerTitle = document.querySelector('.header-title');
+            if (headerTitle && deviceName) {
+                headerTitle.textContent = `${deviceName}`;
+            } else if (headerTitle && deviceId) {
+                headerTitle.textContent = `Smart Assistant Chat - ${deviceId}`;
+            }
+
+            // Initialize Socket.IO connection
+            const socket = io();
+
+            // Join device "room"
+            if (deviceId) {
+                console.log(`Joining device room: device_${deviceId}`);
+                socket.emit('join_device_room', { device_id: deviceId, user_id: userId });
+                socket.on('status', function (data) {
+                    console.log("Room status:", data);
+                });
+                // Load initial chat history
+                loadChatHistory();
+            } else {
+                // If no device ID, display device selection interface
+                displayDeviceSelection();
+            }
+
+            socket.on('disconnect', function () {
+                console.log('Socket connection lost, attempting to reconnect...');
+
+                // Delay reconnection to prevent immediate failure
+                setTimeout(function () {
+                    console.log('Attempting to reconnect...');
+                    socket.connect();
+
+                    // Rejoin room after reconnection
+                    if (deviceId) {
+                        console.log(`Rejoining device room: device_${deviceId}`);
+                        socket.emit('join_device_room', { device_id: deviceId, user_id: userId });
+                    }
+                }, 1000);
+            });
+
+
+
+            // Listen for successful reconnection event
+            socket.on('connect', function () {
+                if (socket.connected) {
+                    console.log('Socket reconnection successful');
+                    // Rejoin room after reconnection
+                    if (deviceId) {
+                        socket.emit('join_device_room', { device_id: deviceId, user_id: userId });
+                    }
+                }
+            });
+
+
+
+            // Listen for new message events
+            socket.on('chat_update', function (data) {
+                console.log("Received new message event:", data);
+
+                // Check if message belongs to current device and user
+                if (data.device_id === deviceId && (!data.user_id || data.user_id === userId)) {
+                    console.log("Received new message for current device and user:", data.message);
+
+                    // If message is from assistant, hide typing indicator
+                    if (data.message && data.message.sender === "assistant") {
+                        hideTypingIndicator();
+                    }
+
+                    // Add new message to chat interface
+                    createMessageElement(data.message);
+
+                    // Scroll to bottom
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                } else if (data.device_id === deviceId) {
+                    console.log(`Received message for device ${deviceId}, but belongs to user ${data.user_id}, current user is ${userId}, ignored`);
+                } else {
+                    console.log("Received message for other device, ignored");
+                }
+            });
+
+            // Listen for new audio file availability notifications
+            socket.on('audio_available', function (data) {
+                console.log("Received new audio file notification:", data);
+
+                // Check if it belongs to the current device
+                if (data.device_id === deviceId) {
+                    // Find the corresponding message (most recent with this audio path)
+                    const audioPath = data.audio_path;
+                    updateMessageWithAudio(audioPath);
+                }
+            });
+
+            // Update audio elements in messages
+            function updateMessageWithAudio(audioPath) {
+                console.log("Attempting to update audio:", audioPath);
+
+                // Find all message elements containing this audio path
+                const messageElements = document.querySelectorAll('.message');
+                const filename = audioPath.split('/').pop();
+
+                let updated = false;
+
+                // Check from most recent message
+                for (let i = messageElements.length - 1; i >= 0; i--) {
+                    const element = messageElements[i];
+                    const audioElement = element.querySelector('.audio-message');
+
+                    if (audioElement) {
+                        // Check if there's a placeholder
+                        const placeholder = audioElement.querySelector('.audio-placeholder');
+                        if (placeholder) {
+                            console.log("Found audio element with placeholder, updating to:", audioPath);
+
+                            // Clear placeholder
+                            while (audioElement.firstChild) {
+                                audioElement.removeChild(audioElement.firstChild);
+                            }
+
+                            // Update data attribute
+                            audioElement.dataset.audioPath = audioPath;
+
+                            // Check if it's a PCM file
+                            if (audioPath.endsWith('.pcm') && typeof PCMConverter !== 'undefined') {
+                                // Show audio loading
+                                const loading = document.createElement('span');
+                                loading.textContent = 'Loading audio...';
+                                loading.className = 'audio-loading';
+                                audioElement.appendChild(loading);
+
+                                // Asynchronously load PCM - select sample rate based on sender
+                                // User recorded audio uses 16000Hz, assistant (TTS) generated audio uses 24000Hz
+                                let sampleRate = (message.sender === "user") ? 16000 : 24000;
+                                PCMConverter.createAudioElementFromPCMFile(audioPath, sampleRate, 1, 16)
+                                    .then(convertedAudio => {
+                                        // Remove loading indicator when loading is complete
+                                        audioElement.innerHTML = '';
+                                        audioElement.appendChild(convertedAudio);
+                                    })
+                                    .catch(err => {
+                                        console.error('PCM conversion failed:', err);
+                                        audioElement.innerHTML = '<span class="error">Audio loading failed</span>';
+                                    });
+                            } else {
+                                // Create standard audio player
+                                const audio = document.createElement('audio');
+                                audio.controls = true;
+                                audio.src = audioPath;
+                                audio.onerror = function () {
+                                    console.error("Audio loading failed:", audioPath);
+                                    audioElement.innerHTML = '<span class="error">Audio loading failed</span>';
+                                };
+                                audioElement.appendChild(audio);
+                            }
+
+                            updated = true;
+                            break;
+                        } else if (audioElement.dataset.audioPath &&
+                            (audioElement.dataset.audioPath.includes(filename) ||
+                                audioPath.includes(audioElement.dataset.audioPath))) {
+
+                            console.log("Found matching audio message:", audioElement.dataset.audioPath);
+
+                            // If there's already an audio control, update the src
+                            const existingAudio = audioElement.querySelector('audio');
+                            if (existingAudio) {
+                                // First remove old audioElement content
+                                while (audioElement.firstChild) {
+                                    audioElement.removeChild(audioElement.firstChild);
+                                }
+
+                                // Create a new audio player
+                                const audioControl = document.createElement('audio');
+                                audioControl.controls = true;
+                                audioControl.src = audioPath;
+                                audioElement.appendChild(audioControl);
+
+                                console.log("Audio updated:", audioPath);
+                                updated = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // If no matching element is found, the new message may not have loaded into the DOM yet
+                if (!updated) {
+                    console.log("No matching audio element found, will retry in 500ms");
+                    setTimeout(() => updateMessageWithAudio(audioPath), 500);
+                }
+            }
+
+            // Load chat history function
+            function loadChatHistory() {
+                console.log(`Loading chat history for device ${deviceId}...`);
+                fetch(`/api/chat_history/${deviceId}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(result => {
+                        if (result.status === 'success') {
+                            console.log("Successfully retrieved chat history:", result.data.length, "messages");
+                            displayChatHistory(result.data);
+                        } else {
+                            console.error('Failed to load chat history:', result.message);
+                            showErrorMessage('Unable to load chat history');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Failed to load chat history:', error);
+                        showErrorMessage('Error connecting to server');
+                    });
+            }
+
+            // Display chat history
+            function displayChatHistory(messages) {
+                // Clear existing messages
+                chatMessages.innerHTML = '';
+
+                // Display each message
+                messages.forEach(message => {
+                    createMessageElement(message);
+                });
+
+                // Scroll to bottom
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+
+
+            // Display error message
+            function showErrorMessage(message) {
+                const errorBox = document.createElement('div');
+                errorBox.className = 'center-box';
+                errorBox.style.backgroundColor = 'rgba(255, 235, 235, 0.9)';
+                errorBox.style.marginTop = '20px';
+
+                const errorIcon = document.createElement('span');
+                errorIcon.className = 'icon';
+                errorIcon.textContent = '⚠️';
+
+                const errorText = document.createElement('span');
+                errorText.textContent = message;
+
+                errorBox.appendChild(errorIcon);
+                errorBox.appendChild(errorText);
+                chatMessages.appendChild(errorBox);
+            }
+
+            // Display device selection interface
+            function displayDeviceSelection() {
+                chatMessages.innerHTML = `
+                    <div class="center-box" style="margin-top: 50px;">
+                        <span class="icon">📱</span>
+                        <span>Please select a device to view chat history</span>
+                    </div>
+                `;
+
+                // Get all authenticated devices
+                fetch('/api/devices')
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.status === 'success' && result.devices.length > 0) {
+                            let deviceList = document.createElement('div');
+                            deviceList.className = 'device-selection';
+
+                            result.devices.forEach(device => {
+                                let deviceBtn = document.createElement('button');
+                                deviceBtn.className = 'device-btn';
+                                deviceBtn.textContent = `${device.id}`;
+                                deviceBtn.onclick = () => {
+                                    window.location.href = `/control?device_id=${device.id}&view=chat`;
+                                };
+
+                                deviceList.appendChild(deviceBtn);
+                            });
+
+                            chatMessages.appendChild(deviceList);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Failed to get device list:', error);
+
+                        // Show error message
+                        const errorBox = document.createElement('div');
+                        errorBox.className = 'center-box';
+                        errorBox.style.backgroundColor = 'rgba(255, 235, 235, 0.9)';
+                        errorBox.style.marginTop = '20px';
+
+                        const errorIcon = document.createElement('span');
+                        errorIcon.className = 'icon';
+                        errorIcon.textContent = '⚠️';
+
+                        const errorText = document.createElement('span');
+                        errorText.textContent = 'Failed to get device list, please try again later';
+
+                        errorBox.appendChild(errorIcon);
+                        errorBox.appendChild(errorText);
+                        chatMessages.appendChild(errorBox);
+                    });
+            }
+
+
+            // function fetchStaticData() {
+            //     // 这里可以添加一些示例静态数据来测试界面
+            //     const staticData = [
+            //         {
+            //             "id": "device01",
+            //             "sender": "user",
+            //             "timestamp": "2025-04-16 14:35:00",
+            //             "message": {
+            //                 "type": "text",
+            //                 "content": "你好呀！",
+            //                 "audio_path": "../audio/ans_1744792525.pcm"
+            //             }
+            //         },
+            //         {
+            //             "id": "device01",
+            //             "sender": "assistant",
+            //             "timestamp": "2025-04-16 14:35:05",
+            //             "message": {
+            //                 "type": "text",
+            //                 "content": "有什么我可以帮你的吗？",
+            //                 "audio_path": "../audio/ans_1744792525.pcm"
+            //             }
+            //         }
+            //     ];
+            //     displayChatHistory(staticData);
+            // }
+
+
+            function createMessageElement(messageData) {
+                const { sender, timestamp, message } = messageData;
+
+                // 处理特定类型的中央消息
+                if (['schedule', 'device_control', 'exit'].includes(message.type)) {
+                    createCenterMessage(message);
+                    return;
+                }
+
+                const messageContainer = document.createElement('div');
+                messageContainer.className = `message-container ${sender}`;
+
+                const messageElement = document.createElement('div');
+                messageElement.className = 'message';
+
+                // 添加时间戳
+                const formattedTime = formatTimestamp(timestamp);
+
+                // 根据消息类型创建不同的内容
+                switch (message.type) {
+                    case 'text':
+                        // 处理音频路径
+                        if (message.audio_path) {
+                            try {
+                                // 修正音频路径为相对于服务器的路径
+                                let audioPath = message.audio_path;
+
+                                // 检查是否是API路径
+                                if (audioPath.startsWith('/api/audio/')) {
+                                    // 已经是API路径，直接使用
+                                    console.log("使用API音频路径:", audioPath);
+                                } else if (audioPath.startsWith('user/')) {
+                                    // 相对路径，转换为API路径
+                                    audioPath = `/api/audio/${audioPath}`;
+                                    console.log("转换为API音频路径:", audioPath);
+                                } else if (audioPath.includes('D:/Labmem') || audioPath.includes('d:/Labmem')) {
+                                    // 从绝对路径中提取相对路径部分
+                                    const pathParts = audioPath.split('/');
+                                    const userIndex = pathParts.indexOf('user');
+                                    if (userIndex !== -1) {
+                                        const relativePath = pathParts.slice(userIndex).join('/');
+                                        audioPath = `/api/audio/${relativePath}`;
+                                        console.log("从绝对路径转换为API路径:", audioPath);
+                                    } else {
+                                        // 如果无法提取，使用基本路径
+                                        audioPath = '../audio/' + audioPath.split('/').pop();
+                                        console.log("无法提取相对路径，使用基本路径:", audioPath);
+                                    }
+                                }
+
+                                // 将PCM转换为可播放的格式
+                                if (audioPath.endsWith('.pcm')) {
+                                    // 检查PCMConverter是否可用
+                                    if (typeof PCMConverter === 'undefined') {
+                                        console.error("无法转换PCM音频: PCMConverter未加载");
+                                        const errorNotice = document.createElement('div');
+                                        errorNotice.className = 'audio-error';
+                                        errorNotice.innerHTML = '<span class="icon">⚠️</span> 无法加载PCM转换器，音频不可用';
+                                        messageElement.appendChild(errorNotice);
+                                    } else {
+                                        // 显示音频处理中的提示
+                                        const audioProcessing = document.createElement('div');
+                                        audioProcessing.className = 'audio-error';
+                                        audioProcessing.innerHTML = '<span class="icon">🎵</span> 音频处理中...';
+                                        messageElement.appendChild(audioProcessing);
+
+                                        // Use PCMConverter to process PCM files asynchronously - select sample rate based on sender
+                                        // User recorded audio uses 16000Hz, assistant (TTS) generated audio uses 24000Hz
+                                        let sampleRate = (sender === "user") ? 16000 : 24000;
+                                        console.log(`Using sample rate ${sampleRate}Hz to play audio, sender: ${sender}, message type: ${message.type}`);
+                                        PCMConverter.createAudioElementFromPCMFile(audioPath, sampleRate, 1, 16)
+                                            .then(audioElement => {
+                                                // Replace processing indicator with audio element on success
+                                                audioElement.className = 'audio-control';
+                                                messageElement.replaceChild(audioElement, audioProcessing);
+                                            })
+                                            .catch(error => {
+                                                console.error('PCM processing error:', error);
+                                                audioProcessing.innerHTML = '<span class="icon">🎵</span> Audio available (click to download)';
+                                                // Add download link as fallback option
+                                                audioProcessing.style.cursor = 'pointer';
+                                                audioProcessing.addEventListener('click', () => {
+                                                    window.open(audioPath, '_blank');
+                                                });
+                                            });
+                                    }
+                                } else {
+                                    // Create standard audio player
+                                    const audio = document.createElement('audio');
+                                    audio.controls = true;
+                                    audio.className = 'audio-control';
+                                    audio.src = audioPath;
+                                    audio.onerror = function () {
+                                        // Display error message when audio fails to load
+                                        console.error("Audio loading failed:", audioPath);
+                                        this.outerHTML = '<div class="audio-error"><span class="icon">🎵</span> Click to play audio</div>';
+                                    };
+                                    messageElement.appendChild(audio);
+                                }
+                            } catch (e) {
+                                console.error('Error processing audio:', e);
+                                const errorNotice = document.createElement('div');
+                                errorNotice.className = 'audio-error';
+                                errorNotice.innerHTML = '<span class="icon">⚠️</span> Audio processing error';
+                                messageElement.appendChild(errorNotice);
+                            }
+                        }
+
+                        // In the audio processing section
+                        if (message.message && message.message.audio_path) {
+                            let audioPath = message.message.audio_path;
+
+                            // Check if it's an API path
+                            if (audioPath.startsWith('/api/audio/')) {
+                                // Already an API path, use directly
+                                console.log("Using API audio path:", audioPath);
+                            } else if (audioPath.startsWith('user/')) {
+                                // Relative path, convert to API path
+                                audioPath = `/api/audio/${audioPath}`;
+                                console.log("Converting to API audio path:", audioPath);
+                            }
+
+                            // Create audio message container, add data attribute for later updates
+                            const audioElement = document.createElement('div');
+                            audioElement.className = 'audio-message';
+                            audioElement.dataset.audioPath = audioPath;  // Add data attribute
+
+                            // If there's an available audio path
+                            if (audioPath && !audioPath.endsWith('/')) {
+                                // Create audio player
+                                const audio = document.createElement('audio');
+                                audio.controls = true;
+
+                                // Check if PCM converter is available
+                                if (audioPath.endsWith('.pcm') && typeof PCMConverter !== 'undefined') {
+                                    // Show audio loading
+                                    const loading = document.createElement('span');
+                                    loading.textContent = 'Loading audio...';
+                                    loading.className = 'audio-loading';
+                                    audioElement.appendChild(loading);
+
+                                    // Asynchronously load PCM - select sample rate based on sender
+                                    // User recorded audio uses 16000Hz, assistant (TTS) generated audio uses 24000Hz
+                                    const sampleRate = (sender === "user") ? 16000 : 24000;
+                                    console.log(`Using sample rate ${sampleRate}Hz to play audio, sender: ${sender}`);
+                                    PCMConverter.createAudioElementFromPCMFile(audioPath, sampleRate, 1, 16)
+                                        .then(convertedAudio => {
+                                            // Remove loading indicator when loading is complete
+                                            audioElement.innerHTML = '';
+                                            audioElement.appendChild(convertedAudio);
+                                        })
+                                        .catch(err => {
+                                            console.error('PCM conversion failed:', err);
+                                            audioElement.innerHTML = '<span class="error">Audio loading failed</span>';
+                                        });
+                                } else {
+                                    // Set audio path directly
+                                    audio.src = audioPath;
+                                    audio.onerror = function () {
+                                        console.error("Audio loading failed:", audioPath);
+                                        audioElement.innerHTML = '<span class="error">Audio loading failed</span>';
+                                    };
+                                    audioElement.appendChild(audio);
+                                }
+                            } else {
+                                // Placeholder
+                                const placeholder = document.createElement('span');
+                                placeholder.textContent = 'Waiting for audio...';
+                                placeholder.className = 'audio-placeholder';
+                                audioElement.appendChild(placeholder);
+                            }
+
+                            // Add to message element
+                            messageElement.appendChild(audioElement);
+                        }
+
+                        // Add text content
+                        const textContent = document.createElement('div');
+                        textContent.textContent = message.content;
+                        messageElement.appendChild(textContent);
+                        break;
+
+                    case 'music':
+                        const musicLink = document.createElement('a');
+                        musicLink.href = message.source;
+                        musicLink.className = 'music-box';
+                        musicLink.target = '_blank';
+
+                        const musicInfo = document.createElement('div');
+                        musicInfo.className = 'music-info';
+
+                        const musicTitle = document.createElement('div');
+                        musicTitle.className = 'music-title';
+                        musicTitle.textContent = message.content;
+
+                        const musicAuthor = document.createElement('div');
+                        musicAuthor.className = 'music-author';
+                        musicAuthor.textContent = message.author;
+                        musicAuthor.onclick = function (e) {
+                            e.preventDefault();
+                            window.open(`https://www.youtube.com/channel/${message.author_id}`, '_blank');
+                        };
+
+                        const musicViews = document.createElement('div');
+                        musicViews.className = 'music-views';
+                        musicViews.textContent = `${formatViewCount(message.view_count)} views`;
+
+                        musicInfo.appendChild(musicTitle);
+                        musicInfo.appendChild(musicAuthor);
+                        musicInfo.appendChild(musicViews);
+
+                        const thumbnail = document.createElement('img');
+                        thumbnail.className = 'music-thumbnail';
+                        thumbnail.src = message.thumbnail;
+                        thumbnail.alt = 'Thumbnail';
+
+                        musicLink.appendChild(musicInfo);
+                        musicLink.appendChild(thumbnail);
+                        messageElement.appendChild(musicLink);
+                        break;
+
+                    case 'web_search':
+                        const webLink = document.createElement('a');
+                        webLink.href = message.source;
+                        webLink.className = 'web-search-box';
+                        webLink.target = '_blank';
+
+                        const webTitle = document.createElement('div');
+                        webTitle.className = 'web-search-title';
+                        webTitle.textContent = message.content;
+
+                        webLink.appendChild(webTitle);
+                        messageElement.appendChild(webLink);
+                        break;
+
+                    default:
+                        const defaultContent = document.createElement('div');
+                        defaultContent.textContent = message.content || 'Unknown message type';
+                        messageElement.appendChild(defaultContent);
+                }
+
+                // Add time
+                const timeElement = document.createElement('div');
+                timeElement.className = 'message-time';
+                timeElement.textContent = formattedTime;
+                messageElement.appendChild(timeElement);
+
+                messageContainer.appendChild(messageElement);
+                chatMessages.appendChild(messageContainer);
+            }
+
+            function createCenterMessage(message) {
+                const centerBox = document.createElement('div');
+                centerBox.className = 'center-box';
+
+                let icon = '';
+                let link = '';
+
+                switch (message.type) {
+                    case 'schedule':
+                        icon = '⏰';
+                        link = '/schedule';
+                        centerBox.setAttribute('data-nav', 'schedule'); // Add data-nav attribute
+                        break;
+                    case 'device_control':
+                        icon = '🔌';
+                        break;
+                    case 'exit':
+                        icon = '👋';
+                        break;
+                    default:
+                        icon = 'ℹ️';
+                }
+
+                const iconSpan = document.createElement('span');
+                iconSpan.className = 'icon';
+                iconSpan.textContent = icon;
+                centerBox.appendChild(iconSpan);
+
+                const contentSpan = document.createElement('span');
+                contentSpan.textContent = message.content;
+                centerBox.appendChild(contentSpan);
+
+                if (message.type === 'schedule') {
+                    centerBox.addEventListener('click', () => {
+                        // Find schedule navigation item
+                        const scheduleNavItem = document.querySelector('.nav-item[data-nav="schedule"]');
+                        if (scheduleNavItem) {
+                            // Trigger click event to switch to schedule view
+                            scheduleNavItem.click();
+                        } else {
+                            // If navigation item not found, use original link
+                            window.location.href = link;
+                        }
+                    });
+                }
+
+                chatMessages.appendChild(centerBox);
+            }
+
+            // 格式化时间戳
+            function formatTimestamp(timestamp) {
+                const date = new Date(timestamp);
+                const hours = date.getHours().toString().padStart(2, '0');
+                const minutes = date.getMinutes().toString().padStart(2, '0');
+                return `${hours}:${minutes}`;
+            }
+
+            // 格式化观看次数
+            function formatViewCount(count) {
+                const num = parseInt(count, 10);
+                if (num >= 1000000) {
+                    return (num / 1000000).toFixed(1) + 'M';
+                } else if (num >= 1000) {
+                    return (num / 1000).toFixed(1) + 'K';
+                }
+                return num.toString();
+            }
+
+
+            // 显示加载动画
+            function showTypingIndicator() {
+                // 移除任何现有的加载动画
+                hideTypingIndicator();
+
+                // 创建新的加载动画容器
+                const indicatorContainer = document.createElement('div');
+                indicatorContainer.id = 'typingIndicatorContainer';
+                indicatorContainer.className = 'typing-indicator-container';
+                indicatorContainer.style.order = '9999'; // 确保它显示在最后
+
+                // 创建消息容器
+                const messageContainer = document.createElement('div');
+                messageContainer.className = 'message-container assistant';
+
+                // 创建加载动画
+                const typingIndicator = document.createElement('div');
+                typingIndicator.className = 'typing-indicator';
+
+                // 添加三个点
+                for (let i = 0; i < 3; i++) {
+                    const dot = document.createElement('span');
+                    dot.className = 'dot';
+                    typingIndicator.appendChild(dot);
+                }
+
+                // 组装元素
+                messageContainer.appendChild(typingIndicator);
+                indicatorContainer.appendChild(messageContainer);
+
+                // 添加到聊天消息区域的末尾
+                const chatMessages = document.getElementById('chatMessages');
+
+                // 确保添加到所有现有消息之后
+                chatMessages.appendChild(indicatorContainer);
+
+                // 显示动画
+                setTimeout(() => {
+                    indicatorContainer.classList.add('show');
+                    // 滚动到底部
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }, 10);
+            }
+
+            // 隐藏加载动画
+            function hideTypingIndicator() {
+                const indicatorContainer = document.getElementById('typingIndicatorContainer');
+                if (indicatorContainer) {
+                    indicatorContainer.classList.remove('show');
+                    // 延迟移除元素，以便淡出动画完成
+                    setTimeout(() => {
+                        if (indicatorContainer.parentNode) {
+                            indicatorContainer.parentNode.removeChild(indicatorContainer);
+                        }
+                    }, 300);
+                }
+            }
+
+            function sendMessage() {
+                const content = messageInput.value.trim();
+                if (!content) return;
+
+                // 创建新消息对象用于显示
+                const newMessage = {
+                    id: deviceId,
+                    sender: "user",
+                    timestamp: new Date().toISOString(),
+                    message: {
+                        type: "text",
+                        content: content
+                    }
+                };
+
+                // 清空输入框
+                messageInput.value = '';
+
+                // 向设备端发送命令
+                sendCommand(content);
+
+                // 先隐藏任何现有的加载动画
+                hideTypingIndicator();
+
+                // 短暂延迟后显示加载动画，确保它出现在最新消息之后
+                setTimeout(() => {
+                    // 显示加载动画
+                    showTypingIndicator();
+
+                    // 滚动到底部
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }, 100);
+
+            }
+
+            // Add command sending function
+            function sendCommand(command) {
+                if (!socket || !socket.connected) {
+                    console.error("Socket not connected. Cannot send command.");
+                    showErrorMessage("Cannot connect to device, command sending failed");
+                    return;
+                }
+
+                console.log(`Sending command: ${command}`);
+
+                // Format current date to YYYY-MM-DD HH:MM:SS format
+                const now = new Date();
+                const formattedDate = now.getFullYear() + '-' +
+                    String(now.getMonth() + 1).padStart(2, '0') + '-' +
+                    String(now.getDate()).padStart(2, '0') + ' ' +
+                    String(now.getHours()).padStart(2, '0') + ':' +
+                    String(now.getMinutes()).padStart(2, '0') + ':' +
+                    String(now.getSeconds()).padStart(2, '0');
+
+                // 1. 首先通过 new_chat_message 发送消息到聊天记录
+                socket.emit('new_chat_message', {
+                    'device_id': deviceId,
+                    'message': {
+                        id: deviceId,
+                        user_id: userId,  // 使用页面顶部定义的用户ID变量
+                        sender: "user",
+                        timestamp: formattedDate,  // Use formatted timestamp
+                        message: {
+                            type: "text",
+                            content: command
+                        }
+                    }
+                });
+
+                // 2. 同时通过 update_config 发送命令到设备
+                socket.emit('update_config', {
+                    device_id: deviceId,
+                    config: { "interaction.command": command }
+                }, function (response) {
+                    if (response && response.status === "success") {
+                        console.log("Command sent successfully:", command);
+                    } else {
+                        console.error("Error sending command:", response);
+                        // Optional: display error message
+                        // showErrorMessage(`Command sending failed: ${response ? response.message : 'Unknown error'}`);
+                    }
+                });
+            }
+
+            // 显示小型通知的函数
+            function showNotification(message, type = 'info') {
+                const notification = document.createElement('div');
+                notification.className = `notification ${type}`;
+
+                // 创建图标
+                const icon = document.createElement('span');
+                icon.style.marginRight = '8px';
+                icon.textContent = type === 'error' ? '⚠️' : '✅';
+
+                // 创建文本
+                const text = document.createElement('span');
+                text.textContent = message;
+
+                notification.appendChild(icon);
+                notification.appendChild(text);
+
+                // 设置样式
+                notification.style.position = 'fixed';
+                notification.style.bottom = '25px';
+                notification.style.right = '25px';
+                notification.style.padding = '12px 18px';
+                notification.style.borderRadius = '12px';
+                notification.style.backgroundColor = type === 'error' ? 'rgba(255, 235, 235, 0.95)' : 'rgba(235, 255, 240, 0.95)';
+                notification.style.color = type === 'error' ? '#721c24' : '#0f5132';
+                notification.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+                notification.style.zIndex = '1000';
+                notification.style.display = 'flex';
+                notification.style.alignItems = 'center';
+                notification.style.fontSize = '14px';
+                notification.style.transform = 'translateY(20px)';
+                notification.style.opacity = '0';
+                notification.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+
+                document.body.appendChild(notification);
+
+                // 显示动画
+                setTimeout(() => {
+                    notification.style.transform = 'translateY(0)';
+                    notification.style.opacity = '1';
+                }, 10);
+
+                // 3秒后自动消失
+                setTimeout(() => {
+                    notification.style.transform = 'translateY(20px)';
+                    notification.style.opacity = '0';
+                    setTimeout(() => {
+                        document.body.removeChild(notification);
+                    }, 300);
+                }, 3000);
+            }
+
+
+            // 发送消息功能（示例）
+            // sendButton.addEventListener('click', sendMessage);
+            // messageInput.addEventListener('keypress', function(e) {
+            //     if (e.key === 'Enter') {
+            //         sendMessage();
+            //     }
+            // });
+
+            // 定义处理函数
+            function handleSendButtonClick() {
+                sendMessage();
+            }
+
+            function handleEnterKey(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            }
+
+            // 处理快速命令点击
+            function handleQuickCommandClick(e) {
+                if (e.target.classList.contains('quick-command-btn')) {
+                    const command = e.target.dataset.command;
+                    if (command) {
+                        // 设置输入框的值为快速命令
+                        messageInput.value = command;
+                        // 发送消息
+                        sendMessage();
+
+                        // 添加点击反馈效果
+                        e.target.classList.add('clicked');
+                        setTimeout(() => {
+                            e.target.classList.remove('clicked');
+                        }, 200);
+
+                        // 隐藏快速命令栏
+                        const quickCommands = document.getElementById('quickCommands');
+                        const toggleBtn = document.getElementById('toggleCommandsBtn');
+                        if (quickCommands && quickCommands.classList.contains('show')) {
+                            quickCommands.classList.remove('show');
+                            if (toggleBtn) toggleBtn.classList.remove('active');
+
+                            // 恢复聊天区域高度
+                            const chatMessages = document.getElementById('chatMessages');
+                            if (chatMessages) {
+                                chatMessages.style.height = `calc(100vh - var(--header-height) - var(--input-height))`;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 确保事件监听器只被添加一次
+            if (sendButton._eventBound !== true) {
+                sendButton.addEventListener('click', handleSendButtonClick);
+                sendButton._eventBound = true;
+            }
+
+            if (messageInput._eventBound !== true) {
+                messageInput.addEventListener('keypress', handleEnterKey);
+                messageInput._eventBound = true;
+            }
+
+            // 为快速命令添加事件监听
+            const quickCommands = document.getElementById('quickCommands');
+            if (quickCommands && !quickCommands._eventBound) {
+                quickCommands.addEventListener('click', handleQuickCommandClick);
+                quickCommands._eventBound = true;
+            }
+
+            // 处理加号按钮点击事件
+            const toggleCommandsBtn = document.getElementById('toggleCommandsBtn');
+            if (toggleCommandsBtn && !toggleCommandsBtn._eventBound) {
+                toggleCommandsBtn.addEventListener('click', function () {
+                    // 切换快速命令栏的显示状态
+                    quickCommands.classList.toggle('show');
+                    // 切换按钮的激活状态（旋转加号变成叉号）
+                    this.classList.toggle('active');
+
+                    // 调整聊天区域高度
+                    if (quickCommands.classList.contains('show')) {
+                        chatMessages.style.height = `calc(100vh - var(--header-height) - var(--input-height) - var(--quick-commands-height))`;
+                        // 滚动到底部
+                        setTimeout(() => {
+                            chatMessages.scrollTop = chatMessages.scrollHeight;
+                        }, 300);
+                    } else {
+                        chatMessages.style.height = `calc(100vh - var(--header-height) - var(--input-height))`;
+                    }
+                });
+                toggleCommandsBtn._eventBound = true;
+            }
+
+            // 处理导航栏点击事件
+            const navItems = document.querySelectorAll('.nav-item');
+            const calendarView = document.getElementById('calendarView');
+
+            // 切换视图函数
+            function toggleView(viewType) {
+                const chatInputContainer = document.querySelector('.chat-input-container');
+
+                if (viewType === 'chat') {
+                    chatMessages.style.display = 'flex';
+                    calendarView.style.display = 'none';
+                    // Show chat input box
+                    chatInputContainer.style.display = 'flex';
+                    // Update title
+                    const displayName = deviceName || deviceId;
+                    document.querySelector('.header-title').textContent = `Smart Assistant Chat${displayName ? ' - ' + displayName : ''}`;
+                } else if (viewType === 'schedule') {
+                    chatMessages.style.display = 'none';
+                    calendarView.style.display = 'flex';
+                    // Hide chat input box
+                    chatInputContainer.style.display = 'none';
+                    // Update title
+                    document.querySelector('.header-title').textContent = 'Schedule';
+                    // Initialize calendar
+                    initCalendar();
+
+                    // Ensure calendar layout is correct after view switch
+                    setTimeout(() => {
+                        // If updateCalendarLayout function exists in calendar view, call it
+                        if (typeof updateCalendarLayout === 'function') {
+                            updateCalendarLayout();
+                        }
+                    }, 100);
+                }
+            }
+
+            navItems.forEach(item => {
+                item.addEventListener('click', function () {
+                    // 移除所有导航项的激活状态
+                    navItems.forEach(navItem => navItem.classList.remove('active'));
+                    // 添加当前点击项的激活状态
+                    this.classList.add('active');
+
+                    // 切换视图
+                    const navType = this.dataset.nav;
+                    toggleView(navType);
+                });
+            });
+
+            // 日历功能实现
+            function initCalendar() {
+                // 获取DOM元素
+                const miniCalendarDays = document.getElementById('miniCalendarDays');
+                const miniCalendarTitle = document.getElementById('miniCalendarTitle');
+                const calendarTitle = document.getElementById('calendarTitle');
+                const dayHeaders = document.getElementById('dayHeaders');
+                const dayColumns = document.getElementById('dayColumns');
+                const prevBtn = document.getElementById('prevBtn');
+                const nextBtn = document.getElementById('nextBtn');
+                const miniPrevBtn = document.getElementById('miniPrevBtn');
+                const miniNextBtn = document.getElementById('miniNextBtn');
+                const todayBtn = document.getElementById('todayBtn');
+                const viewSelectorBtns = document.querySelectorAll('.view-selector-btn');
+
+                // 当前日期和视图状态
+                let currentDate = new Date();
+                let selectedDate = new Date();
+                let currentView = 'week'; // 'week' 或 'month'
+
+                // 加载日程数据
+                let schedules = [];
+
+                // 如果有设备ID，则加载该设备的日程
+                if (deviceId) {
+                    console.log(`正在从路径 user -> ${userId} -> ${deviceId} -> schedule -> schedule.data 加载日程数据...`);
+                    fetch(`/api/schedules/${deviceId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                schedules = data.schedules || [];
+                                console.log('成功加载日程数据:', schedules);
+                                console.log(`共加载了 ${schedules.length} 个日程项目`);
+
+                                // 按日期分组显示日程，便于调试
+                                const schedulesByDate = {};
+                                schedules.forEach(schedule => {
+                                    const date = schedule.time.split(' ')[0];
+                                    if (!schedulesByDate[date]) {
+                                        schedulesByDate[date] = [];
+                                    }
+                                    schedulesByDate[date].push(schedule);
+                                });
+                                console.log('按日期分组的日程:', schedulesByDate);
+
+                                renderCalendar();
+                            } else {
+                                console.error('加载日程失败:', data.message);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('加载日程出错:', error);
+                            // 使用空数组继续渲染
+                            renderCalendar();
+                        });
+                } else {
+                    // 没有设备ID，直接渲染空日历
+                    console.log('没有设备ID，渲染空日历');
+                    renderCalendar();
+                }
+
+                // 渲染日历
+                function renderCalendar() {
+                    renderMiniCalendar();
+
+                    if (currentView === 'week') {
+                        renderWeekView();
+                    } else {
+                        // 月视图的实现可以在这里添加
+                        renderWeekView(); // 暂时使用周视图
+                    }
+
+                    // 更新日历布局尺寸 - 只调用一次
+                    setTimeout(updateCalendarLayout, 100);
+
+                    // 渲染日程数据
+                    renderSchedules();
+                }
+
+                // 渲染日程数据
+                function renderSchedules() {
+                    console.log('正在渲染日程数据...');
+                    console.log('当前日程数据:', schedules);
+
+                    // 清除现有的日程显示
+                    const existingEvents = document.querySelectorAll('.calendar-event, .calendar-events-container');
+                    existingEvents.forEach(event => event.remove());
+
+                    // 按日期分组日程数据
+                    const schedulesByDate = {};
+
+                    // 遍历所有日程并按日期分组
+                    schedules.forEach(schedule => {
+                        try {
+                            // 解析日程时间
+                            const [datePart, timePart] = schedule.time.split(' ');
+
+                            // 如果该日期还没有日程数组，则创建一个
+                            if (!schedulesByDate[datePart]) {
+                                schedulesByDate[datePart] = [];
+                            }
+
+                            // 将日程添加到对应日期的数组中
+                            schedulesByDate[datePart].push(schedule);
+
+                        } catch (error) {
+                            console.error('处理日程时出错:', error, schedule);
+                        }
+                    });
+
+                    console.log('按日期分组的日程:', schedulesByDate);
+
+                    // 遍历每个日期，为每个日期创建一个日程事件容器
+                    Object.keys(schedulesByDate).forEach(dateStr => {
+                        // 查找对应的日期列
+                        const dayColumn = document.querySelector(`.day-column[data-date="${dateStr}"]`);
+
+                        if (dayColumn) {
+                            console.log(`找到日期列: ${dateStr}`);
+
+                            // 创建日程事件容器
+                            const eventsContainer = document.createElement('div');
+                            eventsContainer.className = 'calendar-events-container';
+                            eventsContainer.style.position = 'absolute';
+                            eventsContainer.style.top = '5px';  // 放在格子的最上方
+                            eventsContainer.style.left = '5px';
+                            eventsContainer.style.width = 'calc(100% - 10px)';
+                            eventsContainer.style.zIndex = '10';
+
+                            // 按时间排序该日期的日程
+                            const dateSchedules = schedulesByDate[dateStr].sort((a, b) => {
+                                return new Date(a.time) - new Date(b.time);
+                            });
+
+                            // 为每个日程创建一个事件元素
+                            dateSchedules.forEach((schedule, index) => {
+                                // 解析时间部分，用于显示
+                                const timePart = schedule.time.split(' ')[1];
+                                const [hour, minute] = timePart.split(':');
+
+                                // 创建日程事件元素
+                                const eventElement = document.createElement('div');
+                                eventElement.className = 'calendar-event';
+
+                                // 创建内容元素
+                                const contentElement = document.createElement('div');
+                                contentElement.textContent = schedule.content;
+                                contentElement.style.fontWeight = 'bold';
+                                // 确保内容元素不会阻止点击事件
+                                contentElement.style.pointerEvents = 'none';
+
+                                // 创建时间元素
+                                const timeElement = document.createElement('div');
+                                timeElement.textContent = `${hour}:${minute}`;
+                                timeElement.style.fontSize = '11px';
+                                timeElement.style.opacity = '0.8';
+                                // 确保时间元素不会阻止点击事件
+                                timeElement.style.pointerEvents = 'none';
+
+                                // 添加内容和时间到事件元素
+                                eventElement.appendChild(contentElement);
+                                eventElement.appendChild(timeElement);
+
+                                eventElement.title = `${schedule.time}\n${schedule.content}\n${schedule.addition || ''}`;
+
+                                // 设置日程事件样式
+                                eventElement.style.backgroundColor = '#5d9cec';
+                                eventElement.style.color = 'white';
+                                eventElement.style.padding = '4px 8px';
+                                eventElement.style.borderRadius = '4px';
+                                eventElement.style.fontSize = '12px';
+                                eventElement.style.marginBottom = '5px';
+                                eventElement.style.overflow = 'hidden';
+                                eventElement.style.textOverflow = 'ellipsis';
+                                eventElement.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)';
+                                eventElement.style.cursor = 'pointer';
+                                // 增加z-index确保事件元素在最上层
+                                eventElement.style.zIndex = '15';
+
+                                // 添加点击事件，显示详细信息
+                                eventElement.addEventListener('click', () => {
+                                    // 创建一个弹出框显示详细信息
+                                    const detailsPopup = document.createElement('div');
+                                    detailsPopup.className = 'event-details-popup';
+
+                                    // 添加标题
+                                    const popupTitle = document.createElement('h3');
+                                    popupTitle.textContent = schedule.content;
+                                    detailsPopup.appendChild(popupTitle);
+
+                                    // 添加时间
+                                    const popupTime = document.createElement('p');
+                                    popupTime.innerHTML = `<strong>时间:</strong> ${schedule.time}`;
+                                    detailsPopup.appendChild(popupTime);
+
+                                    // 添加备注信息（如果有）
+                                    if (schedule.addition) {
+                                        const popupAddition = document.createElement('p');
+                                        popupAddition.innerHTML = `<strong>备注:</strong> ${schedule.addition}`;
+                                        detailsPopup.appendChild(popupAddition);
+                                    }
+
+                                    // 添加创建时间
+                                    if (schedule.created_at) {
+                                        const popupCreatedAt = document.createElement('p');
+                                        popupCreatedAt.innerHTML = `<strong>创建于:</strong> ${schedule.created_at}`;
+                                        detailsPopup.appendChild(popupCreatedAt);
+                                    }
+
+                                    // 添加所有其他属性（如果有）
+                                    for (const key in schedule) {
+                                        // 跳过已经显示的属性
+                                        if (key === 'content' || key === 'time' || key === 'addition' || key === 'created_at') {
+                                            continue;
+                                        }
+
+                                        const value = schedule[key];
+                                        if (value !== undefined && value !== null && value !== '') {
+                                            const popupField = document.createElement('p');
+                                            // 将键名转换为更友好的显示格式（首字母大写，下划线替换为空格）
+                                            const displayKey = key.charAt(0).toUpperCase() +
+                                                key.slice(1).replace(/_/g, ' ');
+                                            popupField.innerHTML = `<strong>${displayKey}:</strong> ${value}`;
+                                            detailsPopup.appendChild(popupField);
+                                        }
+                                    }
+
+                                    // 添加关闭按钮
+                                    const closeButton = document.createElement('button');
+                                    closeButton.className = 'popup-close-btn';
+                                    closeButton.textContent = '关闭';
+                                    closeButton.addEventListener('click', (e) => {
+                                        e.stopPropagation(); // 阻止事件冒泡
+                                        document.body.removeChild(detailsPopup);
+                                    });
+                                    detailsPopup.appendChild(closeButton);
+
+                                    // 添加到body
+                                    document.body.appendChild(detailsPopup);
+
+                                    // 定位弹出框
+                                    const rect = eventElement.getBoundingClientRect();
+                                    detailsPopup.style.top = `${rect.top}px`;
+                                    detailsPopup.style.left = `${rect.right + 10}px`;
+
+                                    // 确保弹出框在视口内
+                                    const popupRect = detailsPopup.getBoundingClientRect();
+                                    if (popupRect.right > window.innerWidth) {
+                                        detailsPopup.style.left = `${rect.left - popupRect.width - 10}px`;
+                                    }
+                                    if (popupRect.bottom > window.innerHeight) {
+                                        detailsPopup.style.top = `${window.innerHeight - popupRect.height - 10}px`;
+                                    }
+
+                                    // 点击其他地方关闭弹出框
+                                    document.addEventListener('click', function closePopup(e) {
+                                        if (!detailsPopup.contains(e.target) && e.target !== eventElement) {
+                                            document.body.removeChild(detailsPopup);
+                                            document.removeEventListener('click', closePopup);
+                                        }
+                                    });
+                                });
+
+                                // 将事件元素添加到容器中
+                                eventsContainer.appendChild(eventElement);
+                            });
+
+                            // 将容器添加到日期列
+                            dayColumn.appendChild(eventsContainer);
+                            console.log(`已添加 ${dateSchedules.length} 个日程到日期列: ${dateStr}`);
+                        } else {
+                            console.log(`未找到日期列: ${dateStr}`);
+                        }
+                    });
+                }
+
+                // 渲染迷你日历
+                function renderMiniCalendar() {
+                    // 清空迷你日历
+                    miniCalendarDays.innerHTML = '';
+
+                    // Set mini calendar title
+                    const year = currentDate.getFullYear();
+                    const month = currentDate.getMonth();
+                    miniCalendarTitle.textContent = `${year} ${new Date(year, month, 1).toLocaleString('en-US', {month: 'long'})}`;
+
+                    // Get first day of current month
+                    const firstDay = new Date(year, month, 1);
+                    // Get last day of current month
+                    const lastDay = new Date(year, month + 1, 0);
+
+                    // Get day of week for first day of month (0-6, 0 means Sunday)
+                    const firstDayOfWeek = firstDay.getDay();
+                    // Get number of days in month
+                    const daysInMonth = lastDay.getDate();
+
+                    // Get last few days of previous month
+                    const prevMonthLastDay = new Date(year, month, 0).getDate();
+
+                    // Fill in dates from previous month
+                    for (let i = 0; i < firstDayOfWeek; i++) {
+                        const day = prevMonthLastDay - firstDayOfWeek + i + 1;
+                        const date = new Date(year, month - 1, day);
+                        const dayElement = createMiniDayElement(day, 'other-month', date);
+                        miniCalendarDays.appendChild(dayElement);
+                    }
+
+                    // Fill in dates for current month
+                    for (let i = 1; i <= daysInMonth; i++) {
+                        const date = new Date(year, month, i);
+                        const isToday = isSameDay(date, new Date());
+                        const isSelected = isSameDay(date, selectedDate);
+                        const hasEvents = hasScheduleOnDay(date);
+
+                        let className = '';
+                        if (isToday) className = 'today';
+                        else if (isSelected) className = 'selected';
+
+                        const dayElement = createMiniDayElement(i, className, date);
+                        if (hasEvents) {
+                            // Add event marker dot, not just bold text
+                            const eventMarker = document.createElement('div');
+                            eventMarker.className = 'event-marker';
+                            dayElement.appendChild(eventMarker);
+                        }
+
+                        miniCalendarDays.appendChild(dayElement);
+                    }
+
+                    // Calculate number of days needed from next month
+                    const totalCells = 42; // 6 rows, 7 columns
+                    const remainingCells = totalCells - (firstDayOfWeek + daysInMonth);
+
+                    // Fill in dates from next month
+                    for (let i = 1; i <= remainingCells; i++) {
+                        const date = new Date(year, month + 1, i);
+                        const dayElement = createMiniDayElement(i, 'other-month', date);
+                        miniCalendarDays.appendChild(dayElement);
+                    }
+                }
+
+                // Create mini calendar date element
+                function createMiniDayElement(day, className, date) {
+                    const dayElement = document.createElement('div');
+                    dayElement.className = `mini-day ${className}`;
+                    dayElement.textContent = day;
+                    dayElement.dataset.date = formatDate(date);
+
+                    // Click date to update selected date and re-render
+                    dayElement.addEventListener('click', () => {
+                        selectedDate = date;
+                        currentDate = new Date(date);
+                        renderCalendar();
+                    });
+
+                    return dayElement;
+                }
+
+                // Render week view
+                function renderWeekView() {
+                    // Update calendar title
+                    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+                    calendarTitle.textContent = selectedDate.toLocaleDateString('en-US', options);
+
+                    // Get start date of the week containing selected date (Sunday is first day)
+                    const weekStart = new Date(selectedDate);
+                    weekStart.setDate(selectedDate.getDate() - selectedDate.getDay());
+
+                    // Render week view header
+                    renderWeekHeader(weekStart);
+
+                    // Render week view content
+                    renderWeekContent(weekStart);
+                }
+
+                // 渲染周视图头部
+                function renderWeekHeader(weekStart) {
+                    dayHeaders.innerHTML = '';
+
+                    // 创建7天的头部
+                    for (let i = 0; i < 7; i++) {
+                        const date = new Date(weekStart);
+                        date.setDate(weekStart.getDate() + i);
+
+                        const dayHeader = document.createElement('div');
+                        dayHeader.className = 'day-header';
+
+                        // 如果是今天，添加today类
+                        if (isSameDay(date, new Date())) {
+                            dayHeader.classList.add('today');
+                        }
+
+                        // 如果是选中日期，添加selected类
+                        if (isSameDay(date, selectedDate)) {
+                            dayHeader.classList.add('selected');
+                        }
+
+                        // Day of week
+                        const dayName = document.createElement('div');
+                        dayName.className = 'day-name';
+                        const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                        dayName.textContent = weekdays[date.getDay()];
+
+                        // 日期数字
+                        const dayNumber = document.createElement('div');
+                        dayNumber.className = 'day-number';
+                        dayNumber.textContent = date.getDate();
+
+                        dayHeader.appendChild(dayName);
+                        dayHeader.appendChild(dayNumber);
+
+                        // 点击日期头部选中该日期
+                        dayHeader.addEventListener('click', () => {
+                            selectedDate = date;
+                            renderCalendar();
+                        });
+
+                        dayHeaders.appendChild(dayHeader);
+                    }
+                }
+
+                // 渲染周视图内容
+                function renderWeekContent(weekStart) {
+                    dayColumns.innerHTML = '';
+
+                    // 创建7天的列
+                    for (let i = 0; i < 7; i++) {
+                        const date = new Date(weekStart);
+                        date.setDate(weekStart.getDate() + i);
+
+                        const dayColumn = document.createElement('div');
+                        dayColumn.className = 'day-column';
+
+                        // 创建每小时的时间槽 - 从0点到23点，显示全天24小时
+                        for (let hour = 0; hour < 24; hour++) {
+                            const hourSlot = document.createElement('div');
+                            hourSlot.className = 'hour-slot';
+
+                            // 检查这个小时是否有日程
+                            const hasEventInHour = schedules.some(schedule => {
+                                const scheduleDate = schedule.time.split(' ')[0]; // 提取日期部分
+                                if (scheduleDate === formatDate(date)) {
+                                    const scheduleTime = new Date(schedule.time);
+                                    return scheduleTime.getHours() === hour;
+                                }
+                                return false;
+                            });
+
+                            // 如果有日程，添加标记
+                            if (hasEventInHour) {
+                                hourSlot.classList.add('has-event');
+                            }
+
+                            // 添加点击事件，可以在这里添加创建日程的功能
+                            hourSlot.addEventListener('click', () => {
+                                const slotDate = new Date(date);
+                                slotDate.setHours(hour);
+                                console.log(`点击了 ${formatDateTime(slotDate)} 的时间槽`);
+                            });
+
+                            dayColumn.appendChild(hourSlot);
+                        }
+
+                        // 添加该日期的日程
+                        addEventsToColumn(dayColumn, date);
+
+                        dayColumns.appendChild(dayColumn);
+                    }
+                }
+
+                // 向日期列添加日程
+                function addEventsToColumn(column, date) {
+                    const dateStr = formatDate(date);
+                    console.log(`为日期 ${dateStr} 添加日程`); // 添加调试日志
+
+                    // 筛选当天的日程
+                    const daySchedules = schedules.filter(schedule => {
+                        const scheduleDate = schedule.time.split(' ')[0]; // 提取日期部分
+                        const match = scheduleDate === dateStr;
+                        if (match) {
+                            console.log(`将添加日程: ${schedule.content} 在 ${schedule.time}`); // 添加调试日志
+                        }
+                        return match;
+                    });
+
+                    console.log(`日期 ${dateStr} 有 ${daySchedules.length} 个日程`); // 添加调试日志
+
+                    // 按时间排序
+                    daySchedules.sort((a, b) => {
+                        return new Date(a.time) - new Date(b.time);
+                    });
+
+                    // 按小时分组日程
+                    const schedulesByHour = {};
+                    daySchedules.forEach(schedule => {
+                        const scheduleTime = new Date(schedule.time);
+                        const hour = scheduleTime.getHours();
+
+                        if (!schedulesByHour[hour]) {
+                            schedulesByHour[hour] = [];
+                        }
+
+                        schedulesByHour[hour].push(schedule);
+                    });
+
+                    // 遍历每个小时，添加该小时的所有日程
+                    Object.keys(schedulesByHour).forEach(hour => {
+                        const hourSchedules = schedulesByHour[hour];
+                        const hourIndex = parseInt(hour);
+                        const baseTop = hourIndex * 120; // 每小时120px高
+
+                        // 事件高度和间距
+                        const eventHeight = 40; // 每个事件的高度
+                        const eventMargin = 5; // 事件之间的间距
+
+                        // 为该小时的每个日程创建事件元素
+                        hourSchedules.forEach((schedule, index) => {
+                            const scheduleTime = new Date(schedule.time);
+                            const hour = scheduleTime.getHours();
+                            const minute = scheduleTime.getMinutes();
+
+                            // 创建日程元素
+                            const eventElement = document.createElement('div');
+                            eventElement.className = 'event';
+
+                            // 创建内容容器，允许更复杂的内容结构
+                            const contentContainer = document.createElement('div');
+                            contentContainer.className = 'event-content';
+                            // 确保内容容器不会阻止点击事件
+                            contentContainer.style.pointerEvents = 'none';
+
+                            // 添加主要内容
+                            const titleElement = document.createElement('div');
+                            titleElement.className = 'event-title';
+                            titleElement.textContent = schedule.content;
+                            // 确保标题元素不会阻止点击事件
+                            titleElement.style.pointerEvents = 'none';
+                            contentContainer.appendChild(titleElement);
+
+                            // 添加时间信息
+                            const timeElement = document.createElement('div');
+                            timeElement.className = 'event-time';
+                            timeElement.textContent = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+                            // 确保时间元素不会阻止点击事件
+                            timeElement.style.pointerEvents = 'none';
+                            contentContainer.appendChild(timeElement);
+
+                            // 将内容容器添加到事件元素
+                            eventElement.appendChild(contentContainer);
+
+                            // 计算位置 - 根据索引垂直排列
+                            const top = baseTop + (index * (eventHeight + eventMargin));
+
+                            // 设置事件样式
+                            eventElement.style.position = 'absolute';
+                            eventElement.style.top = `${top}px`;
+                            eventElement.style.left = '5px';
+                            eventElement.style.width = 'calc(100% - 10px)';
+                            eventElement.style.height = `${eventHeight}px`;
+                            eventElement.style.backgroundColor = '#5d9cec';
+                            eventElement.style.color = 'white';
+                            eventElement.style.padding = '4px 8px';
+                            eventElement.style.borderRadius = '4px';
+                            eventElement.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)';
+                            eventElement.style.zIndex = '15'; // 增加z-index确保事件元素在最上层
+                            eventElement.style.cursor = 'pointer';
+                            eventElement.style.overflow = 'hidden';
+                            eventElement.style.boxSizing = 'border-box';
+
+                            // 添加点击事件，显示更多详细信息
+                            eventElement.addEventListener('click', () => {
+                                // 创建一个弹出框显示详细信息
+                                const detailsPopup = document.createElement('div');
+                                detailsPopup.className = 'event-details-popup';
+
+                                // 添加标题
+                                const popupTitle = document.createElement('h3');
+                                popupTitle.textContent = schedule.content;
+                                detailsPopup.appendChild(popupTitle);
+
+                                // Add time
+                                const popupTime = document.createElement('p');
+                                popupTime.innerHTML = `<strong>Time:</strong> ${schedule.time}`;
+                                detailsPopup.appendChild(popupTime);
+
+                                // Add notes (if any)
+                                if (schedule.addition) {
+                                    const popupAddition = document.createElement('p');
+                                    popupAddition.innerHTML = `<strong>Notes:</strong> ${schedule.addition}`;
+                                    detailsPopup.appendChild(popupAddition);
+                                }
+
+                                // Add creation time
+                                if (schedule.created_at) {
+                                    const popupCreatedAt = document.createElement('p');
+                                    popupCreatedAt.innerHTML = `<strong>Created at:</strong> ${schedule.created_at}`;
+                                    detailsPopup.appendChild(popupCreatedAt);
+                                }
+
+                                // Add all other properties (if any)
+                                for (const key in schedule) {
+                                    // Skip already displayed properties
+                                    if (key === 'content' || key === 'time' || key === 'addition' || key === 'created_at') {
+                                        continue;
+                                    }
+
+                                    const value = schedule[key];
+                                    if (value !== undefined && value !== null && value !== '') {
+                                        const popupField = document.createElement('p');
+                                        // 将键名转换为更友好的显示格式（首字母大写，下划线替换为空格）
+                                        const displayKey = key.charAt(0).toUpperCase() +
+                                            key.slice(1).replace(/_/g, ' ');
+                                        popupField.innerHTML = `<strong>${displayKey}:</strong> ${value}`;
+                                        detailsPopup.appendChild(popupField);
+                                    }
+                                }
+
+                                // Add close button
+                                const closeButton = document.createElement('button');
+                                closeButton.className = 'popup-close-btn';
+                                closeButton.textContent = 'Close';
+                                closeButton.addEventListener('click', (e) => {
+                                    e.stopPropagation(); // Prevent event bubbling
+                                    document.body.removeChild(detailsPopup);
+                                });
+                                detailsPopup.appendChild(closeButton);
+
+                                // Add to body
+                                document.body.appendChild(detailsPopup);
+
+                                // Position popup
+                                const rect = eventElement.getBoundingClientRect();
+                                detailsPopup.style.top = `${rect.top}px`;
+                                detailsPopup.style.left = `${rect.right + 10}px`;
+
+                                // Ensure popup is within viewport
+                                const popupRect = detailsPopup.getBoundingClientRect();
+                                if (popupRect.right > window.innerWidth) {
+                                    detailsPopup.style.left = `${rect.left - popupRect.width - 10}px`;
+                                }
+                                if (popupRect.bottom > window.innerHeight) {
+                                    detailsPopup.style.top = `${window.innerHeight - popupRect.height - 10}px`;
+                                }
+
+                                // Close popup when clicking elsewhere
+                                document.addEventListener('click', function closePopup(e) {
+                                    if (!detailsPopup.contains(e.target) && e.target !== eventElement) {
+                                        document.body.removeChild(detailsPopup);
+                                        document.removeEventListener('click', closePopup);
+                                    }
+                                });
+                            });
+
+                            // Add to column
+                            column.appendChild(eventElement);
+                        });
+                    });
+                }
+
+                // 检查指定日期是否有日程
+                function hasScheduleOnDay(date) {
+                    const dateStr = formatDate(date);
+
+                    // 查找当天的所有日程
+                    const daySchedules = schedules.filter(schedule => {
+                        const scheduleDate = schedule.time.split(' ')[0]; // 提取日期部分
+                        return scheduleDate === dateStr;
+                    });
+
+                    const hasSchedule = daySchedules.length > 0;
+
+                    if (hasSchedule) {
+                        console.log(`日期 ${dateStr} 有 ${daySchedules.length} 个日程:`);
+                        daySchedules.forEach((schedule, index) => {
+                            const scheduleTime = schedule.time.split(' ')[1]; // 提取时间部分
+                            console.log(`  ${index + 1}. ${scheduleTime} - ${schedule.content}`);
+                        });
+                    }
+
+                    return hasSchedule;
+                }
+
+                // 格式化日期为 YYYY-MM-DD
+                function formatDate(date) {
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                }
+
+                // 格式化日期时间为 YYYY-MM-DD HH:MM:SS
+                function formatDateTime(date) {
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const hours = String(date.getHours()).padStart(2, '0');
+                    const minutes = String(date.getMinutes()).padStart(2, '0');
+                    const seconds = String(date.getSeconds()).padStart(2, '0');
+                    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+                }
+
+                // 判断两个日期是否是同一天
+                function isSameDay(date1, date2) {
+                    return date1.getFullYear() === date2.getFullYear() &&
+                        date1.getMonth() === date2.getMonth() &&
+                        date1.getDate() === date2.getDate();
+                }
+
+                // 上一周/月按钮点击事件
+                prevBtn.addEventListener('click', () => {
+                    if (currentView === 'week') {
+                        // 上一周
+                        currentDate.setDate(currentDate.getDate() - 7);
+                    } else {
+                        // 上一月
+                        currentDate.setMonth(currentDate.getMonth() - 1);
+                    }
+                    selectedDate = new Date(currentDate);
+                    renderCalendar();
+                });
+
+                // 下一周/月按钮点击事件
+                nextBtn.addEventListener('click', () => {
+                    if (currentView === 'week') {
+                        // 下一周
+                        currentDate.setDate(currentDate.getDate() + 7);
+                    } else {
+                        // 下一月
+                        currentDate.setMonth(currentDate.getMonth() + 1);
+                    }
+                    selectedDate = new Date(currentDate);
+                    renderCalendar();
+                });
+
+                // 迷你日历上一月按钮点击事件
+                miniPrevBtn.addEventListener('click', () => {
+                    currentDate.setMonth(currentDate.getMonth() - 1);
+                    renderMiniCalendar();
+                });
+
+                // 迷你日历下一月按钮点击事件
+                miniNextBtn.addEventListener('click', () => {
+                    currentDate.setMonth(currentDate.getMonth() + 1);
+                    renderMiniCalendar();
+                });
+
+                // 今天按钮点击事件
+                todayBtn.addEventListener('click', () => {
+                    currentDate = new Date();
+                    selectedDate = new Date();
+                    renderCalendar();
+                });
+
+                // 视图选择按钮点击事件
+                viewSelectorBtns.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        // 移除所有按钮的active类
+                        viewSelectorBtns.forEach(b => b.classList.remove('active'));
+                        // 添加当前按钮的active类
+                        btn.classList.add('active');
+
+                        // 更新当前视图
+                        currentView = btn.dataset.view;
+                        renderCalendar();
+                    });
+                });
+
+                // 迷你日历收起/展开功能
+                const miniCalendarToggle = document.getElementById('miniCalendarToggle');
+                const miniCalendar = document.getElementById('miniCalendar');
+
+                // 更新日历布局尺寸
+                function updateCalendarLayout() {
+                    const timeColumn = document.querySelector('.time-column');
+                    const dayColumns = document.querySelector('.day-columns');
+                    const weekHeader = document.querySelector('.week-header');
+                    const weekContent = document.querySelector('.week-content');
+                    const timeSlots = document.querySelectorAll('.time-slot');
+                    const dayHeaders = document.querySelectorAll('.day-header');
+                    const dayColumnElements = document.querySelectorAll('.day-column');
+
+                    if (timeColumn && dayColumns) {
+                        // 获取时间列的宽度
+                        const timeColumnWidth = timeColumn.offsetWidth;
+                        // 更新CSS变量
+                        document.documentElement.style.setProperty('--time-column-width', `${timeColumnWidth}px`);
+                        // 设置日期列的宽度
+                        dayColumns.style.width = `calc(100% - ${timeColumnWidth}px)`;
+
+                        // 确保所有时间槽高度一致
+                        if (timeSlots.length > 0) {
+                            const timeSlotHeight = timeSlots[0].offsetHeight;
+                            document.documentElement.style.setProperty('--time-slot-height', `${timeSlotHeight}px`);
+
+                            // 确保小时格子高度与时间槽一致
+                            const hourSlots = document.querySelectorAll('.hour-slot');
+                            hourSlots.forEach(slot => {
+                                slot.style.height = `${timeSlotHeight}px`;
+                            });
+                        }                        // 确保日期列宽度与日期头部一致
+                        if (dayHeaders.length > 0 && dayColumnElements.length > 0) {
+                            // 先清除所有已设置的宽度样式，以便正确计算总宽度
+                            dayHeaders.forEach(header => {
+                                header.style.width = '';
+                                header.style.minWidth = '';
+                                header.style.maxWidth = '';
+                            });
+
+                            dayColumnElements.forEach(column => {
+                                column.style.width = '';
+                                column.style.minWidth = '';
+                                column.style.maxWidth = '';
+                            });
+
+                            // 短暂延迟，确保样式清除已生效
+                            setTimeout(() => {
+                                // 计算每列应该有的宽度 - 平均分配
+                                const totalWidth = dayHeaders[0].parentElement.offsetWidth;
+                                const columnWidth = Math.floor(totalWidth / dayHeaders.length);
+
+                                console.log(`重新计算列宽: 总宽度=${totalWidth}px, 每列宽度=${columnWidth}px, 列数=${dayHeaders.length}`);
+
+                                // 应用相同的宽度到所有列和头部，确保对齐
+                                for (let i = 0; i < Math.min(dayHeaders.length, dayColumnElements.length); i++) {
+                                    // 使用固定宽度，确保所有列完全相同
+                                    const width = `${columnWidth}px`;
+                                    dayHeaders[i].style.width = width;
+                                    dayHeaders[i].style.minWidth = width;
+                                    dayHeaders[i].style.maxWidth = width;
+                                    dayColumnElements[i].style.width = width;
+                                    dayColumnElements[i].style.minWidth = width;
+                                    dayColumnElements[i].style.maxWidth = width;
+                                }
+                            }, 0);
+                        }
+
+                        // 计算内容区域的高度
+                        if (weekHeader && weekContent) {
+                            const headerHeight = weekHeader.offsetHeight;
+                            const calendarToolbar = document.querySelector('.calendar-toolbar');
+                            const toolbarHeight = calendarToolbar ? calendarToolbar.offsetHeight : 0;
+
+                            // 设置内容区域的高度
+                            weekContent.style.height = `calc(100% - ${headerHeight}px)`;
+                        }
+
+                        // 确保布局正确
+                        setupScrollSync();
+                    }
+                }                // 设置初始滚动位置
+                function setupScrollSync() {
+                    const calendarContainer = document.querySelector('.calendar-container');
+
+                    if (!calendarContainer) return;
+
+                    // 确保时间列和日期头部在滚动时保持可见
+                    const timeColumn = document.querySelector('.time-column');
+                    const weekHeader = document.querySelector('.week-header');
+                    const miniCalendar = document.querySelector('.mini-calendar');
+                    const dayColumns = document.querySelector('.day-columns');
+                    const weekContent = document.querySelector('.week-content');
+                    const weekView = document.querySelector('.week-view');
+
+                    // 确保所有列的高度一致
+                    if (timeColumn && dayColumns) {
+                        const height = Math.max(3000, dayColumns.scrollHeight);
+                        timeColumn.style.height = `${height}px`;
+                        dayColumns.style.height = `${height}px`;
+
+                        // 确保每个日期列也有相同的高度
+                        const dayColumnElements = document.querySelectorAll('.day-column');
+                        dayColumnElements.forEach(column => {
+                            column.style.height = `${height}px`;
+                        });
+                    }                    if (timeColumn) {
+                        timeColumn.style.position = 'sticky';
+                        timeColumn.style.left = '0';
+                        timeColumn.style.zIndex = '50'; // 提高z-index
+                    }
+
+                    // 确保week-header固定在顶部
+                    if (weekHeader) {
+                        // 清除之前可能设置的样式，让CSS接管
+                        weekHeader.style.position = 'sticky';
+                        weekHeader.style.top = '0';
+                        weekHeader.style.zIndex = '55'; // 确保weekHeader在所有元素之上
+                    }
+
+                    if (miniCalendar) {
+                        miniCalendar.style.position = 'sticky';
+                        miniCalendar.style.top = '0';
+                        miniCalendar.style.zIndex = '50'; // 提高z-index
+                    }
+
+                    // 添加滚动事件监听器，记录并调试滚动行为
+                    weekView.addEventListener('scroll', function(e) {
+                        // 记录滚动位置，便于调试
+                        const scrollTop = e.target.scrollTop;
+                        console.log(`Week view scrolling: ${scrollTop}px`);
+                    });
+                }                // 监听窗口大小变化
+                window.addEventListener('resize', function() {
+                    updateCalendarLayout();
+                    // 延迟执行以确保布局更新后再调整头部位置
+                    setTimeout(setupScrollSync, 100);
+                });
+
+                // 不再需要监听滚动事件来调整week-header
+                // sticky定位会自动处理滚动行为
+
+                if (miniCalendarToggle) {
+                    miniCalendarToggle.addEventListener('click', () => {
+                        // 切换日历收起状态前，先记录当前状态
+                        const wasCollapsed = miniCalendar.classList.contains('collapsed');
+
+                        // 切换状态
+                        miniCalendar.classList.toggle('collapsed');
+
+                        // 获取新状态
+                        const isCollapsed = miniCalendar.classList.contains('collapsed');
+
+                        // 手动调整周视图宽度，不等待CSS过渡
+                        const weekView = document.querySelector('.week-view');
+                        if (weekView) {
+                            if (isCollapsed) {
+                                // 折叠时扩大周视图
+                                weekView.style.width = '100%';
+                            } else {
+                                // 展开时缩小周视图
+                                weekView.style.width = 'calc(100% - 256px)';
+                            }
+                        }
+
+                        // 保存状态到本地存储
+                        localStorage.setItem('miniCalendarCollapsed', isCollapsed);
+
+                        // 延迟更新布局，等待过渡完成
+                        setTimeout(() => {
+                            // 强制重新计算布局
+                            const dayHeaders = document.querySelectorAll('.day-header');
+                            const dayColumnElements = document.querySelectorAll('.day-column');
+
+                            // 清除所有宽度样式，以便重新计算
+                            dayHeaders.forEach(header => {
+                                header.style.width = '';
+                                header.style.minWidth = '';
+                                header.style.maxWidth = '';
+                            });
+
+                            dayColumnElements.forEach(column => {
+                                column.style.width = '';
+                                column.style.minWidth = '';
+                                column.style.maxWidth = '';
+                            });
+
+                            // 更新日历布局
+                            updateCalendarLayout();
+                        }, 300);
+                    });
+
+                    // 从本地存储加载状态
+                    const isCollapsed = localStorage.getItem('miniCalendarCollapsed') === 'true';
+                    if (isCollapsed) {
+                        miniCalendar.classList.add('collapsed');
+
+                        // 立即应用正确的宽度
+                        const weekView = document.querySelector('.week-view');
+                        if (weekView) {
+                            weekView.style.width = '100%';
+                        }
+                    }
+
+                    // 初始化时更新布局
+                    setTimeout(updateCalendarLayout, 100);
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>

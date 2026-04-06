@@ -1,0 +1,152 @@
+{
+    "wake_word": {
+        "windows_enable": false,
+        "pi_enable": true,
+        "windows_api_key": "",
+        "pi_api_key": ""
+    },
+    "STT": {
+        "azure": {
+            "api_key": "",
+            "region": "southeastasia"
+        }
+    },
+    "TTS": {
+        "use_azure": true,
+        "use_bytedance": true,
+        "use_sovits": true,
+        "azure": {
+            "api_key": "",
+            "region": "southeastasia",
+            "languages": {
+                "zh-CN": [
+                    {
+                        "id": "zh-CN-XiaoxiaoNeural",
+                        "name": "晓晓 (女声)"
+                    },
+                    {
+                        "id": "zh-CN-XiaoxiaoMultilingualNeural",
+                        "name": "晓晓 (多语言)"
+                    }
+                ],
+                "en-US": [
+                    {
+                        "id": "zh-CN-XiaoxiaoMultilingualNeural",
+                        "name": "XiaoXiao(Multilingual)"
+                    }
+                ]
+            }
+        },
+        "bytedance": {
+            "app_id": "",
+            "token": "",
+            "languages": {
+                "zh-CN": [
+                    {
+                        "id": "zh_female_wanwanxiaohe_moon_bigtts",
+                        "name": "湾湾小何"
+                    },
+                    {
+                        "id": "ICL_zh_female_chengshujiejie_tob",
+                        "name": "成熟姐姐"
+                    },
+                    {
+                        "id": "zh_female_yingyujiaoyu_mars_bigtts",
+                        "name": "Tina"
+                    }
+                ]
+            }
+        },
+        "sovits": {
+            "base_url": "http://127.0.0.1:9880",
+            "languages": {
+                "zh-CN": [
+                    {
+                        "id": "Customize voice",
+                        "name": "Customize voice"
+                    }
+                ]
+            }
+        }
+    },
+    "LLM": {
+        "use_openai": true,
+        "use_deepseek": false,
+        "use_groq": true,
+        "openai": {
+            "api_key": "",
+            "model_id": [
+                {
+                    "id": "gpt-4o-mini",
+                    "name": "GPT-4o Mini"
+                }
+            ]
+        },
+        "deepseek": {
+            "api_key": "",
+            "model_id": [
+                {
+                    "id": "deepseek-chat",
+                    "name": "Deepseek Chat"
+                }
+            ]
+        },
+        "groq": {
+            "api_key": "",
+            "model_api_key": "",
+            "intent_model_api_key": "",
+            "model_id": [
+                {
+                    "id": "llama-3.3-70b-versatile",
+                    "name": "Llama 3.3 70B"
+                },
+                {
+                    "id": "meta-llama/llama-4-maverick-17b-128e-instruct",
+                    "name": "Llama 4 Maverick 17B"
+                },
+                {
+                    "id": "meta-llama/llama-4-scout-17b-16e-instruct",
+                    "name": "Llama 4 Scout 17B"
+                }
+            ]
+        }
+    },
+    "web_search": {
+        "tavily_api_key": ""
+    },
+    "weather": {
+        "api_key": "",
+        "location": ""
+    },
+    "music_player": {
+        "enabled": true,
+        "spotify": {
+            "api_key": ""
+        },
+        "youtube": {
+            "api_key": "",
+            "channel_id": ""
+        }
+    },
+    "llm_services": {
+        "groq": {
+            "api_key": "",
+            "model_api_key": "",
+            "intent_model_api_key": ""
+        }
+    },
+    "speech_services": {
+        "azure_tts": {
+            "api_key": ""
+        }
+    },
+    "server": {
+        "secret_key": ""
+    },
+    "email": {
+        "resend_api_key": "",
+        "email_from": "Yumi <noreply@resend.dev>",
+        "otp_length": 6,
+        "otp_expire_seconds": 300
+    }
+}

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="{{ url_for('static', filename='Small_logo.png') }}" type="image/png">
+    <title>User Chat</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        #chat {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            border-bottom: 1px solid #ccc;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            max-width: 60%;
+        }
+        .message.you {
+            background-color: #007bff;
+            color: white;
+            align-self: flex-end;
+        }
+        .message.me {
+            background-color: #f1f1f1;
+            color: black;
+            align-self: flex-start;
+        }
+        #input-area {
+            display: flex;
+            padding: 10px;
+            background-color: #f9f9f9;
+        }
+        #message {
+            flex: 1;
+            padding: 10px;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div id="chat"></div>
+    <div id="input-area">
+        <input type="text" id="message" placeholder="Type your message">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+
+    <script type="text/javascript">
+        var socket = io();
+        var user_id;
+
+        socket.on('connect', function() {
+            user_id = prompt("Enter your user ID:");
+            socket.emit('register_user', {user_id: user_id});
+        });
+
+        socket.on('user_message', function(data) {
+            var message = data.message;
+            var admin_id = data.admin_id;
+            var chat = document.getElementById('chat');
+            var messageElement = document.createElement('div');
+            messageElement.classList.add('message', 'me');
+            messageElement.innerHTML = `<b>Admin ${admin_id}:</b> ${message}`;
+            chat.appendChild(messageElement);
+            chat.scrollTop = chat.scrollHeight; // 滚动到底部
+        });
+
+        function sendMessage() {
+            var message = document.getElementById('message').value;
+            if (message) {
+                socket.emit('user_message', {user_id: user_id, message: message});
+                var chat = document.getElementById('chat');
+                var messageElement = document.createElement('div');
+                messageElement.classList.add('message', 'you');
+                messageElement.innerHTML = `<b>You:</b> ${message}`;
+                chat.appendChild(messageElement);
+                chat.scrollTop = chat.scrollHeight; // 滚动到底部
+                document.getElementById('message').value = '';
+            } else {
+                alert("Please enter a message.");
+            }
+        }
+    </script>
+</body>
+</html>

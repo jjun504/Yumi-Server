@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="{{ url_for('static', filename='Small_logo.png') }}" type="image/png">
+    <title>Verify OTP</title>
+    <!-- 添加Boxicons图标库 -->
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: url("{{ url_for('static', filename='cloud_background.png') }}") no-repeat center center fixed;
+            background-size: cover;
+            overflow: hidden;
+        }
+
+        .container {
+            background: transparent;
+            width: 100vw;
+            height: 100vh;
+            max-width: 100%;
+            position: relative;
+            overflow: hidden;
+            margin: 0;
+            display: flex;
+            flex-direction: row;
+            border-radius: 0;
+            box-shadow: none;
+        }
+
+        .blue-side {
+            width: 40%;
+            color: white;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+            background: transparent;
+        }
+
+        .blue-side::before {
+            display: none;
+        }
+
+        .blue-side::after {
+            display: none;
+        }
+
+        .welcome-text {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            padding: 1rem;
+        }
+
+        .welcome-text h1 {
+            font-size: 3.2rem;
+            margin-bottom: 1.2rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.6) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            position: relative;
+        }
+
+        .welcome-text h1:after {
+            content: attr(data-text);
+            position: absolute;
+            left: 0;
+            top: 0;
+            z-index: -1;
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.1) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            transform: translateY(1px);
+        }
+
+        .welcome-text p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 2rem;
+            font-weight: 300;
+            letter-spacing: 0.5px;
+        }
+
+        .features-list {
+            list-style: none;
+            margin: 2rem 0;
+            padding: 0;
+            text-align: left;
+            position: relative;
+            z-index: 2;
+        }
+
+        .features-list li {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-left: 1rem;
+            font-size: 1.05rem;
+            opacity: 0.9;
+        }
+
+        .features-list li i {
+            margin-right: 0.8rem;
+            font-size: 1.4rem;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        @media (max-width: 992px) {
+            .features-list {
+                margin: 1rem 0;
+            }
+
+            .features-list li {
+                font-size: 0.95rem;
+            }
+
+            .welcome-text h1 {
+                font-size: 2.8rem;
+            }
+        }
+
+        .divider-image {
+            display: none;
+        }
+
+        .form-content {
+            width: 60%;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: none;
+            position: relative;
+            overflow-y: auto;
+        }
+
+        h1 {
+            color: #1f468a;
+            margin-bottom: 2.2rem;
+            font-size: 2rem;
+            font-weight: 700;
+            text-align: center;
+            letter-spacing: -0.5px;
+            position: relative;
+        }
+
+        h1::after {
+            content: '';
+            position: absolute;
+            bottom: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 4px;
+            background: linear-gradient(90deg, #3a75c4, #1a4784);
+            border-radius: 2px;
+        }
+
+        .form-inner {
+            max-width: 450px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* OTP输入样式 */
+        .otp-container {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 2rem;
+        }
+
+        .otp-input {
+            width: 60px;
+            height: 60px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 600;
+            background: white;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+        }
+
+        .otp-input:focus {
+            border-color: #3a75c4;
+            outline: none;
+            box-shadow: 0 3px 12px rgba(58, 117, 196, 0.08);
+            transform: translateY(-2px);
+        }
+
+        /* 邮箱显示区域 */
+        .email-display {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            padding: 15px;
+            background-color: #f9fbff;
+            border-radius: 10px;
+            border-left: 4px solid #3a75c4;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .email-highlight {
+            color: #1f468a;
+            font-weight: 700;
+        }
+
+        /* 提交按钮样式 */
+        .submit-btn {
+            width: 100%;
+            height: 58px;
+            background: linear-gradient(135deg, #1a4784 0%, #3a75c4 70%, #4a8ed5 100%);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(26, 71, 132, 0.25);
+            margin-bottom: 1.5rem;
+            letter-spacing: 0.5px;
+        }
+
+        .submit-btn:hover {
+            background: linear-gradient(135deg, #163d72, #2a62ad);
+            transform: scale(1.02);
+            box-shadow: 0 5px 15px rgba(26, 71, 132, 0.3);
+        }
+
+        .submit-btn:active {
+            transform: scale(1);
+            box-shadow: 0 3px 10px rgba(26, 71, 132, 0.3);
+        }
+
+        /* 登录链接 */
+        .login-link {
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: 1rem;
+            color: #666;
+            width: 100%;
+        }
+
+        /* 重置链接样式 */
+        .resend-link {
+            color: #3a75c4;
+            text-decoration: none;
+            font-weight: 600;
+            cursor: pointer;
+            position: relative;
+            padding-bottom: 2px;
+            transition: all 0.25s ease;
+        }
+
+        .resend-link::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: #3a75c4;
+            transform: scaleX(0);
+            transition: transform 0.4s ease;
+            transform-origin: right;
+        }
+
+        .resend-link:hover {
+            color: #1a4784;
+        }
+
+        .resend-link:hover::after {
+            transform: scaleX(1);
+            transform-origin: left;
+        }
+
+        .resend-link:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .countdown {
+            color: #666;
+            font-weight: 500;
+            display: inline-block;
+            margin-left: 5px;
+        }
+
+        .alert {
+            padding: 0.85rem 1rem;
+            margin-bottom: 1.5rem;
+            border-radius: 10px;
+            font-weight: 500;
+            text-align: center;
+            width: 100%;
+            border-left: 4px solid;
+        }
+
+        .alert-error {
+            background-color: #fff5f5;
+            color: #e53e3e;
+            border-color: #e53e3e;
+        }
+
+        .alert-success {
+            background-color: #f0fff4;
+            color: #38a169;
+            border-color: #38a169;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(15px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .form-inner>* {
+            animation: fadeInUp 0.5s ease forwards;
+        }
+
+        .form-inner>*:nth-child(1) {
+            animation-delay: 0.1s;
+        }
+
+        .form-inner>*:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .form-inner>*:nth-child(3) {
+            animation-delay: 0.3s;
+        }
+
+        .form-inner>*:nth-child(4) {
+            animation-delay: 0.4s;
+        }
+
+        .form-inner>*:nth-child(5) {
+            animation-delay: 0.5s;
+        }
+
+        @media (max-width: 1080px) {
+            .form-inner {
+                max-width: 420px;
+                padding: 2rem 0;
+            }
+        }
+
+        @media (max-width: 1050px) {
+            body {
+                overflow: auto;
+                display: block;
+                height: auto;
+                background: url("{{ url_for('static', filename='cloud_background2.png') }}") no-repeat center top;
+                background-size: 100%;
+                position: relative;
+                background-attachment: scroll;
+            }
+
+            body::before {
+                display: none;
+            }
+
+            .container {
+                flex-direction: column;
+                height: auto;
+                min-height: 100vh;
+                width: 100%;
+                position: relative;
+                overflow: visible;
+                transform: none;
+                padding-top: 20px;
+            }
+
+            .blue-side {
+                width: 100%;
+                padding: 2rem 1.5rem;
+                height: auto;
+                min-height: 40vh;
+                position: relative;
+                z-index: 1;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+            }
+
+            .welcome-text {
+                text-align: center;
+                padding: 0;
+                margin-bottom: 1rem;
+            }
+
+            .welcome-text h1 {
+                font-size: 2.8rem;
+                margin-bottom: 0.5rem;
+            }
+
+            .welcome-text p {
+                margin-bottom: 0.8rem;
+                font-size: 1.3rem;
+            }
+
+            .features-list {
+                margin: 0.5rem 0;
+                text-align: center;
+                display: flex;
+                flex-direction: column;
+                gap: 0.6rem;
+                align-items: center;
+            }
+
+            .features-list li {
+                padding-left: 0;
+                margin-bottom: 0;
+                font-size: 1.1rem;
+            }
+
+            .form-content {
+                width: 90%;
+                margin: 10px auto 2rem;
+                padding: 1.8rem 1rem;
+                border-radius: 20px;
+                height: auto;
+                position: relative;
+                z-index: 2;
+            }
+
+            .form-inner {
+                padding-top: 0;
+                max-width: 400px;
+                margin: 100px 0px;
+            }
+        }
+
+        @media (min-width: 1051px) {
+            body {
+                background: url("{{ url_for('static', filename='cloud_background.png') }}") no-repeat center center fixed;
+                background-size: cover;
+                overflow: hidden;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .welcome-text h1 {
+                font-size: 2.2rem;
+            }
+
+            .welcome-text p {
+                font-size: 1.1rem;
+            }
+
+            .features-list li {
+                font-size: 0.95rem;
+            }
+
+            .blue-side {
+                padding: 1.5rem 1rem;
+                min-height: auto;
+                max-height: none;
+                margin: 0;
+            }
+
+            .form-content {
+                width: 95%;
+                padding: 1.5rem 1rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .form-inner {
+                padding: 1rem 0;
+            }
+
+            h1 {
+                font-size: 1.8rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .otp-container {
+                gap: 8px;
+            }
+
+            .otp-input {
+                width: 50px;
+                height: 50px;
+                font-size: 1.3rem;
+            }
+
+            .submit-btn {
+                height: 54px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .welcome-text h1 {
+                font-size: 1.8rem;
+            }
+
+            .welcome-text p {
+                font-size: 1rem;
+                margin-bottom: 0.5rem;
+            }
+
+            .features-list {
+                gap: 0.4rem;
+            }
+
+            .features-list li {
+                font-size: 0.9rem;
+            }
+
+            .features-list li i {
+                font-size: 1.2rem;
+                margin-right: 0.5rem;
+            }
+
+            .form-content h1 {
+                font-size: 1.6rem;
+                margin-bottom: 1.2rem;
+            }
+
+            .otp-container {
+                gap: 5px;
+            }
+
+            .otp-input {
+                width: 40px;
+                height: 45px;
+                font-size: 1.1rem;
+            }
+
+            .submit-btn {
+                height: 50px;
+                font-size: 1rem;
+            }
+
+            .login-link {
+                font-size: 0.9rem;
+                margin-top: 1.5rem;
+            }
+        }
+
+        /* 模态窗口样式 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-container {
+            background-color: white;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .modal-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .modal-title {
+            margin: 0;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .modal-body {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .modal-icon {
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+
+        .modal-message {
+            text-align: center;
+            color: #555;
+        }
+
+        .modal-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #eee;
+            text-align: center;
+        }
+
+        .modal-btn-continue {
+            background-color: #3a75c4;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .modal-btn-continue:hover {
+            background-color: #2a62ad;
+        }
+
+        .modal-success .modal-icon {
+            color: #38a169;
+        }
+
+        .modal-error .modal-icon {
+            color: #e53e3e;
+        }
+
+        .modal-warning .modal-icon {
+            color: #dd6b20;
+        }
+
+        .modal-info .modal-icon {
+            color: #3182ce;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Modal Dialog Component -->
+    <div class="modal-overlay" id="messageModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3 class="modal-title">Information</h3>
+            </div>
+            <div class="modal-body">
+                <div class="modal-icon">ℹ️</div>
+                <div class="modal-message" id="modalMessage"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn-continue" id="modalContinueBtn">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Flash Messages Container -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="hidden-message" data-message="{{ message }}" data-category="{{ category }}" style="display: none;">
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    <div class="container">
+        <div class="blue-side">
+            <div class="welcome-text">
+                <h1 data-text="Verify Code">Verify Code</h1>
+                <p>Enter the code sent to your email</p>
+            </div>
+
+            <ul class="features-list">
+                <li><i class='bx bx-envelope-open'></i> Check your inbox for the code</li>
+                <li><i class='bx bx-time-five'></i> The code expires in 5 minutes</li>
+                <li><i class='bx bx-lock-open-alt'></i> For your security</li>
+                <li><i class='bx bx-check-shield'></i> Enter the 6-digit code</li>
+            </ul>
+        </div>
+
+        <div class="form-content">
+            <div class="form-inner">
+                <h1>Verification Code</h1>
+
+                <div class="email-display">
+                    Verification code has been sent to: <span class="email-highlight">{{ email }}</span>
+                </div>
+
+                <form action="{{ url_for('auth.verify_reset_otp') }}" method="POST" id="otpForm">
+                    <div class="otp-container">
+                        <input type="text" class="otp-input" name="otp1" maxlength="1" pattern="[0-9]" inputmode="numeric" autocomplete="one-time-code" required>
+                        <input type="text" class="otp-input" name="otp2" maxlength="1" pattern="[0-9]" inputmode="numeric" required>
+                        <input type="text" class="otp-input" name="otp3" maxlength="1" pattern="[0-9]" inputmode="numeric" required>
+                        <input type="text" class="otp-input" name="otp4" maxlength="1" pattern="[0-9]" inputmode="numeric" required>
+                        <input type="text" class="otp-input" name="otp5" maxlength="1" pattern="[0-9]" inputmode="numeric" required>
+                        <input type="text" class="otp-input" name="otp6" maxlength="1" pattern="[0-9]" inputmode="numeric" required>
+                        <input type="hidden" name="otp" id="otpFull">
+                    </div>
+
+                    <button type="submit" class="submit-btn" id="verifyBtn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        </svg>
+                        Verify
+                    </button>
+                </form>
+
+                <div class="login-link">
+                    Didn't receive the code? <span class="resend-link" id="resendLink">Resend</span>
+                    <span class="countdown" id="countdownTimer" style="display:none;"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Modal functionality
+            const messageModal = document.getElementById('messageModal');
+            const modalMessage = document.getElementById('modalMessage');
+            const modalContinueBtn = document.getElementById('modalContinueBtn');
+            const modalIcon = document.querySelector('.modal-icon');
+            const modalTitle = document.querySelector('.modal-title');
+            
+            let pendingRedirect = null;
+
+            function showModal(message, category = 'info', redirectUrl = null) {
+                if (!message) return;
+                
+                pendingRedirect = redirectUrl;
+                modalMessage.textContent = message;
+                
+                let icon = '';
+                let title = '';
+                
+                switch (category) {
+                    case 'success':
+                        icon = '✅';
+                        title = 'Success';
+                        break;
+                    case 'error':
+                        icon = '❌';
+                        title = 'Error';
+                        break;
+                    case 'warning':
+                        icon = '⚠️';
+                        title = 'Warning';
+                        break;
+                    case 'info':
+                    default:
+                        icon = 'ℹ️';
+                        title = 'Information';
+                }
+                
+                modalIcon.textContent = icon;
+                modalTitle.textContent = title;
+                messageModal.className = 'modal-overlay active';
+                messageModal.classList.add(`modal-${category}`);
+            }
+            
+            function showModalWithCallback(message, category = 'info', callback) {
+                if (!message) return;
+
+                modalMessage.textContent = message;
+
+                let icon = '';
+                let title = '';
+
+                switch (category) {
+                    case 'success':
+                        icon = '✅';
+                        title = 'Code Sent';
+                        break;
+                    case 'error':
+                        icon = '❌';
+                        title = 'Error';
+                        break;
+                    case 'warning':
+                        icon = '⚠️';
+                        title = 'Warning';
+                        break;
+                    case 'info':
+                    default:
+                        icon = 'ℹ️';
+                        title = 'Information';
+                }
+
+                modalIcon.textContent = icon;
+                modalTitle.textContent = title;
+                messageModal.className = 'modal-overlay active';
+                messageModal.classList.add(`modal-${category}`);
+
+                // Remove any existing event listeners and add new one with callback
+                const currentModalContinueBtn = document.getElementById('modalContinueBtn');
+                if (currentModalContinueBtn) {
+                    const newModalContinueBtn = currentModalContinueBtn.cloneNode(true);
+                    currentModalContinueBtn.parentNode.replaceChild(newModalContinueBtn, currentModalContinueBtn);
+
+                    newModalContinueBtn.addEventListener('click', function() {
+                        messageModal.classList.remove('active');
+                        messageModal.classList.remove('modal-success', 'modal-error', 'modal-warning', 'modal-info');
+
+                        if (callback && typeof callback === 'function') {
+                            callback();
+                        }
+                    });
+                }
+            }
+
+            function closeModal() {
+                messageModal.classList.remove('active');
+                messageModal.classList.remove('modal-success', 'modal-error', 'modal-warning', 'modal-info');
+
+                if (pendingRedirect) {
+                    window.location.href = pendingRedirect;
+                    pendingRedirect = null;
+                }
+            }
+            
+            if (modalContinueBtn) {
+                modalContinueBtn.addEventListener('click', closeModal);
+            }
+            
+            // Process flash messages
+            const messages = [];
+            const hiddenMessages = document.querySelectorAll('.hidden-message');
+            hiddenMessages.forEach(hiddenMessage => {
+                messages.push({
+                    message: hiddenMessage.dataset.message,
+                    category: hiddenMessage.dataset.category
+                });
+            });
+            
+            if (messages.length > 0) {
+                const message = messages[0];
+                showModal(message.message, message.category);
+            }
+
+            // OTP inputs functionality
+            const otpInputs = document.querySelectorAll('.otp-input');
+            const otpForm = document.getElementById('otpForm');
+            const otpFull = document.getElementById('otpFull');
+            const resendLink = document.getElementById('resendLink');
+            const countdownTimer = document.getElementById('countdownTimer');
+
+            // OTP输入框焦点管理
+            otpInputs.forEach((input, index) => {
+                input.addEventListener('keyup', function (e) {
+                    // 如果输入了数字
+                    if (e.keyCode >= 48 && e.keyCode <= 57 || e.keyCode >= 96 && e.keyCode <= 105) {
+                        // 移动到下一个输入框
+                        if (index < otpInputs.length - 1) {
+                            otpInputs[index + 1].focus();
+                        }
+                    }
+                    // 如果按了删除键
+                    else if (e.keyCode === 8 && !this.value) {
+                        // 移动到前一个输入框
+                        if (index > 0) {
+                            otpInputs[index - 1].focus();
+                        }
+                    }
+
+                    // 更新隐藏的完整OTP字段
+                    updateFullOtp();
+                });
+
+                // 粘贴事件处理
+                input.addEventListener('paste', function (e) {
+                    e.preventDefault();
+                    const pasteData = e.clipboardData.getData('text').trim();
+                    if (/^\d+$/.test(pasteData) && pasteData.length <= otpInputs.length) {
+                        // 将每个数字填充到对应的输入框
+                        for (let i = 0; i < Math.min(pasteData.length, otpInputs.length); i++) {
+                            otpInputs[i].value = pasteData[i];
+                        }
+                        // 将焦点设置到最后一个填充的输入框之后
+                        if (index + pasteData.length < otpInputs.length) {
+                            otpInputs[index + pasteData.length].focus();
+                        } else {
+                            otpInputs[otpInputs.length - 1].focus();
+                        }
+                        // 更新完整OTP
+                        updateFullOtp();
+                    }
+                });
+
+                // 输入验证，只允许数字
+                input.addEventListener('input', function (e) {
+                    this.value = this.value.replace(/[^0-9]/g, '');
+                });
+            });
+
+            // 提交前更新隐藏的OTP字段并使用AJAX
+            otpForm.addEventListener('submit', function (e) {
+                e.preventDefault(); // 阻止默认提交
+
+                updateFullOtp();
+
+                // 验证OTP是否完整
+                if (otpFull.value.length !== 6) {
+                    showModal('Please enter a complete 6-digit verification code', 'error');
+                    return;
+                }
+
+                // 使用AJAX提交
+                const formData = new FormData();
+                formData.append('otp', otpFull.value);
+
+                fetch('/auth/verify_reset_otp', {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData,
+                    credentials: 'same-origin'
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // 验证成功，跳转到密码重置页面
+                        window.location.href = '/auth/reset_password';
+                    } else {
+                        return response.json().then(data => {
+                            throw new Error(data.message || 'Verification failed');
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showModal(error.message || 'Verification code is incorrect, please try again', 'error');
+
+                    // 清空输入框
+                    otpInputs.forEach(input => {
+                        input.value = '';
+                    });
+                    otpFull.value = '';
+                    otpInputs[0].focus();
+                });
+            });
+
+            // 更新完整OTP字段的函数
+            function updateFullOtp() {
+                let fullOtp = '';
+                otpInputs.forEach(input => {
+                    fullOtp += input.value;
+                });
+                otpFull.value = fullOtp;
+            }
+
+            // 重新发送OTP的功能
+            let countdown = 30; // 倒计时30秒
+            let countdownInterval;
+
+            // 初始化倒计时状态
+            function startResendCountdown() {
+                resendLink.style.display = 'none';
+                countdownTimer.style.display = 'inline-block';
+                countdown = 30;
+                updateCountdownDisplay();
+
+                countdownInterval = setInterval(() => {
+                    countdown--;
+                    updateCountdownDisplay();
+
+                    if (countdown <= 0) {
+                        clearInterval(countdownInterval);
+                        resendLink.style.display = 'inline-block';
+                        countdownTimer.style.display = 'none';
+                    }
+                }, 1000);
+            }
+
+            // 更新倒计时显示
+            function updateCountdownDisplay() {
+                countdownTimer.textContent = `(Resend available in ${countdown} seconds)`;
+            }
+
+            // 绑定重新发送点击事件
+            resendLink.addEventListener('click', function () {
+                if (resendLink.style.display !== 'none') {
+                    resendLink.style.display = 'none';
+                    countdownTimer.style.display = 'inline-block';
+                    countdownTimer.textContent = 'Sending...';
+
+                    // 发送AJAX请求重新发送OTP
+                    fetch('{{ url_for("auth.resend_reset_otp") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // 显示成功消息并在点击OK后刷新页面
+                            showModalWithCallback(data.message, 'success', function() {
+                                window.location.reload();
+                            });
+                        } else {
+                            // 恢复重发链接状态
+                            resendLink.style.display = 'inline-block';
+                            countdownTimer.style.display = 'none';
+                            // 显示错误消息
+                            showModal(data.message, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        // 恢复重发链接状态
+                        resendLink.style.display = 'inline-block';
+                        countdownTimer.style.display = 'none';
+                        showModal('Failed to send, please try again later', 'error');
+                    });
+                }
+            });
+
+            // 自动将焦点放在第一个输入框
+            if (otpInputs.length > 0) {
+                otpInputs[0].focus();
+            }
+
+            // 如果刚加载页面，开始倒计时
+            startResendCountdown();
+        });
+    </script>
+</body>
+
+</html>

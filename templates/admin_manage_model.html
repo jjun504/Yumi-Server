@@ -1,0 +1,1121 @@
+{% extends "admin_base.html" %}
+
+{% block title %}Manage Models{% endblock %}
+{% block header_title %}Manage Models{% endblock %}
+{% block manage_models_active %}active{% endblock %}
+
+{% block page_css %}
+<style>
+    /* 使用admin_base.html中定义的全局配色方案 */
+
+    /* 卡片基础样式 */
+    .card {
+        position: relative;
+        background-color: var(--bg-white);
+        border: none;
+        border-radius: 1rem;
+        box-shadow: var(--shadow);
+        transition: transform 0.3s, box-shadow 0.3s;
+        color: var(--text-color);
+    }
+
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.65rem 2.5rem 0 rgba(58, 59, 69, 0.2);
+    }
+
+    .card-header {
+        padding: 1.35rem 1.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: linear-gradient(45deg, var(--primary-color) 0%, var(--primary-light) 50%, var(--primary-light) 100%);
+        color: white;
+        border-top-left-radius: 1rem;
+        border-top-right-radius: 1rem;
+        border: none;
+    }
+
+    .card-header h5 {
+        margin-bottom: 0;
+        font-weight: 600;
+        font-size: 1.15rem;
+        letter-spacing: 0.6px;
+    }
+
+    .card-header h5 i {
+        margin-right: 12px;
+        font-size: 1.3rem;
+        opacity: 0.9;
+        vertical-align: middle;
+        color: rgba(255, 255, 255, 0.95);
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    /* 按钮美化 */
+    .btn {
+        padding: 0.55rem 1.2rem;
+        font-weight: 500;
+        border-radius: 0.7rem;
+        transition: all 0.3s;
+        box-shadow: 0 3px 10px rgba(50, 50, 93, 0.12);
+        letter-spacing: 0.4px;
+        border: none;
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* 主要按钮 - 带渐变和微光效果 */
+    .btn-primary {
+        background: linear-gradient(45deg, var(--primary-color) 0%, var(--primary-light) 100%);
+        color: white;
+        font-weight: 500;
+    }
+
+    .btn-primary:hover {
+        background: linear-gradient(45deg, var(--primary-dark) 0%, var(--primary-color) 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(28, 95, 162, 0.25);
+    }
+
+    .btn-primary:active {
+        transform: translateY(1px);
+    }
+
+    .btn-info {
+        background: linear-gradient(45deg, var(--primary-light) 0%, var(--primary-color) 100%);
+        color: white;
+    }
+
+    .btn-info:hover {
+        background: linear-gradient(45deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(28, 95, 162, 0.25);
+    }
+
+    .btn-success {
+        background: linear-gradient(45deg, var(--success-color) 0%, #218838 100%);
+        color: white;
+    }
+
+    .btn-success:hover {
+        background: linear-gradient(45deg, #218838 0%, #1e7e34 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(40, 167, 69, 0.25);
+    }
+
+    .btn-outline-secondary,
+    .btn-outline-primary,
+    .btn-outline-info {
+        background-color: var(--bg-white);
+        border: 1.5px solid;
+        transition: all 0.3s;
+    }
+
+    .btn-outline-secondary {
+        border-color: var(--secondary-color);
+        color: var(--secondary-color);
+    }
+
+    .btn-outline-secondary:hover {
+        background-color: var(--secondary-color);
+        color: white;
+        box-shadow: 0 4px 12px rgba(108, 117, 125, 0.25);
+    }
+
+    .btn-outline-primary {
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+    }
+
+    .btn-outline-primary:hover {
+        background-color: var(--primary-color);
+        color: white;
+        box-shadow: 0 4px 12px rgba(28, 95, 162, 0.25);
+    }
+
+    .btn-outline-info {
+        border-color: var(--info-color);
+        color: var(--info-color);
+    }
+
+    .btn-outline-info:hover {
+        background-color: var(--info-color);
+        color: white;
+        box-shadow: 0 4px 12px rgba(86, 204, 242, 0.25);
+    }
+
+    .btn:focus {
+        box-shadow: none;
+    }
+
+    .btn i {
+        margin-right: 8px;
+        font-size: 0.95em;
+        vertical-align: -1px;
+    }
+
+    .btn-sm {
+        padding: 0.4rem 1rem;
+        font-size: 0.85rem;
+        border-radius: 0.5rem;
+    }
+
+    /* 日志查看功能已移至admin_view_log.html页面 */
+
+    /* 设备列表样式 */
+    .device-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .device-table th,
+    .device-table td {
+        vertical-align: middle;
+        padding: 1.1rem 0.9rem;
+    }
+
+    .device-table thead th {
+        background-color: var(--primary-light);
+        font-weight: 600;
+        letter-spacing: 0.4px;
+        border-bottom: 2px solid var(--border-color);
+        padding-top: 1.2rem;
+        padding-bottom: 1.2rem;
+        font-size: 0.95rem;
+    }
+
+    .device-table tbody tr {
+        border-bottom: 1px solid var(--border-color);
+        transition: all 0.25s;
+        color: var(--text-color);
+    }
+
+    .device-table tbody tr:hover {
+        background-color: var(--bg-hover);
+    }
+
+    .device-status {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 10px;
+        position: relative;
+    }
+
+    .device-status::after {
+        content: '';
+        position: absolute;
+        top: -3px;
+        left: -3px;
+        right: -3px;
+        bottom: -3px;
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.2);
+        }
+        70% {
+            box-shadow: 0 0 0 5px rgba(0, 0, 0, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
+        }
+    }
+
+    .device-status-online {
+        background-color: var(--success-color);
+        box-shadow: 0 0 0 3px rgba(37, 194, 160, 0.2);
+    }
+
+    .device-status-online::after {
+        animation: pulse-online 2s infinite;
+    }
+
+    @keyframes pulse-online {
+        0% {
+            box-shadow: 0 0 0 0 rgba(37, 194, 160, 0.35);
+        }
+        70% {
+            box-shadow: 0 0 0 5px rgba(37, 194, 160, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(37, 194, 160, 0);
+        }
+    }
+
+    .device-status-offline {
+        background-color: var(--danger-color);
+        box-shadow: 0 0 0 3px rgba(255, 93, 143, 0.2);
+    }
+
+    .device-status-unknown {
+        background-color: var(--warning-color);
+        box-shadow: 0 0 0 3px rgba(255, 209, 102, 0.2);
+    }
+
+    .device-id {
+        font-weight: 600;
+        color: var(--primary-dark);
+        font-size: 0.95rem;
+        letter-spacing: 0.3px;
+        transition: all 0.25s;
+    }
+
+    tr:hover .device-id {
+        color: var(--primary-color);
+    }
+
+    .owner-badge {
+        background: linear-gradient(45deg, var(--primary-color), var(--primary-light));
+        color: white;
+        font-size: 85%;
+        padding: 0.35em 0.75em;
+        border-radius: 6px;
+        font-weight: 500;
+        box-shadow: 0 2px 5px rgba(28, 95, 162, 0.25);
+        letter-spacing: 0.3px;
+    }
+
+    .device-actions .btn {
+        margin-right: 0.5rem;
+        padding: 0.4rem 0.85rem;
+        font-size: 0.85rem;
+        border-radius: 8px;
+        transition: transform 0.3s, box-shadow 0.3s;
+        margin: 2px;
+    }
+
+    .device-actions .btn:hover {
+        transform: translateY(-3px);
+    }
+
+    .device-actions .btn:last-child {
+        margin-right: 0;
+    }
+
+    .alert {
+        border-radius: 12px;
+        font-weight: 500;
+        padding: 1rem 1.5rem;
+        border: none;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+    }
+
+    .alert-info {
+        background-color: rgba(86, 204, 242, 0.12);
+        color: var(--info-color);
+        border: 1px solid var(--info-color);
+    }
+
+    .alert i {
+        margin-right: 10px;
+        font-size: 1.1rem;
+    }
+
+    /* 配置模态框样式 */
+    .config-modal-content {
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+        border: none;
+        background-color: var(--bg-white);
+        color: var(--text-color);
+    }
+
+    .config-modal-header {
+        background: linear-gradient(45deg, var(--primary-color) 0%, var(--primary-light) 100%);
+        color: white;
+        padding: 20px 25px;
+        border-bottom: none;
+    }
+
+    .config-modal-header .modal-title {
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        display: flex;
+        align-items: center;
+    }
+
+    .config-modal-header .device-id-title {
+        opacity: 0.9;
+        font-weight: 500;
+        margin-left: 5px;
+    }
+
+    .config-modal-body {
+        padding: 25px;
+        max-height: 70vh;
+        overflow-y: auto;
+    }
+
+    .config-modal-footer {
+        border-top: 1px solid var(--border-color);
+        padding: 15px 25px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background-color: var(--bg-light);
+    }
+
+    .config-loading {
+        text-align: center;
+        padding: 50px 0;
+    }
+
+    .config-loading .spinner-grow {
+        width: 3rem;
+        height: 3rem;
+    }
+
+    .config-loading .loading-text {
+        margin-top: 20px;
+        font-size: 1.1rem;
+        color: var(--text-secondary);
+        font-weight: 500;
+    }
+
+    .config-error {
+        border-radius: 12px;
+        padding: 20px;
+        margin: 20px 0;
+        background-color: var(--bg-light);
+        border-left: 5px solid var(--danger-color);
+        color: var(--text-color);
+    }
+
+    .config-tabs {
+        margin-bottom: 25px;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .config-tabs .nav-link {
+        border-radius: 12px;
+        font-weight: 500;
+        padding: 12px 15px;
+        transition: all 0.3s ease;
+        background-color: var(--bg-light);
+        color: var(--primary-color);
+        margin: 3px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .config-tabs .nav-link.active {
+        background: linear-gradient(45deg, var(--primary-color) 0%, var(--primary-light) 100%);
+        color: white;
+        box-shadow: 0 4px 10px rgba(28, 95, 162, 0.25);
+        transform: translateY(-2px);
+    }
+
+    .config-tabs .nav-link:hover:not(.active) {
+        background-color: var(--bg-hover);
+        transform: translateY(-2px);
+    }
+
+    .config-tab-content {
+        padding: 5px 0;
+    }
+
+    .config-section {
+        background-color: var(--bg-white);
+        border-radius: 16px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        padding: 25px;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+        color: var(--text-color);
+    }
+
+    .config-section:hover {
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .config-section-title {
+        color: var(--primary-color);
+        border-bottom: 2px solid var(--border-color);
+        padding-bottom: 12px;
+        margin-bottom: 20px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .config-table {
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.03);
+    }
+
+    .config-table th {
+        width: 30%;
+        background-color: var(--bg-light);
+        color: var(--primary-dark);
+        padding: 12px 15px;
+        border-left: 3px solid var(--primary-light);
+        font-weight: 600;
+    }
+
+    .config-table td {
+        padding: 12px 15px;
+        color: var(--text-color);
+    }
+
+    .config-value {
+        font-family: 'Courier New', monospace;
+    }
+
+    .config-array-value {
+        font-family: 'Courier New', monospace;
+        white-space: pre-wrap;
+        background-color: var(--bg-secondary);
+        border-radius: 8px;
+        padding: 12px 15px;
+        color: var(--text-color);
+    }
+
+    .config-nested-value {
+        padding: 15px;
+        background-color: var(--bg-secondary);
+        border-radius: 12px;
+        color: var(--text-color);
+    }
+
+    .nested-table {
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.03);
+        background-color: var(--bg-white);
+        margin-bottom: 0;
+    }
+
+    .nested-table th {
+        width: 40%;
+        background-color: var(--bg-light);
+        color: var(--primary-dark);
+        padding: 10px 15px;
+        border-left: 3px solid var(--primary-light);
+    }
+
+    .nested-table td {
+        font-family: 'Courier New', monospace;
+        white-space: pre-wrap;
+        padding: 10px 15px;
+    }
+
+    .config-accordion .accordion-item {
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 8px;
+        border: 1px solid #e9ecef;
+    }
+
+    .config-accordion .accordion-button {
+        padding: 15px;
+        font-weight: 500;
+        background-color: #f8f9fa;
+    }
+
+    .config-accordion .accordion-button:not(.collapsed) {
+        background-color: var(--primary-color);
+        color: white;
+    }
+
+    .config-accordion .accordion-body {
+        padding: 15px;
+        background-color: #fff;
+    }
+
+    .config-warning {
+        border-radius: 12px;
+        border-left: 4px solid #ffc107;
+        padding: 15px 20px;
+        box-shadow: 0 4px 10px rgba(255, 193, 7, 0.1);
+        background-color: #fff8e1;
+        margin-bottom: 0;
+        margin-right: auto;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .config-warning i {
+        color: #ff9800;
+    }
+
+    .config-warning span {
+        font-weight: 500;
+    }
+
+    /* 移动设备适配 */
+    @media (max-width: 991px) {
+        .device-table {
+            font-size: 0.95rem;
+        }
+
+        .card-header {
+            padding: 1.2rem 1.25rem;
+        }
+    }
+
+    @media (max-width: 767px) {
+        .device-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+        }
+
+        .device-actions .btn {
+            margin-right: 0;
+            padding: 0.45rem 0.75rem;
+            width: 100%;
+            text-align: center;
+        }
+    }
+
+    @media (max-width: 575px) {
+        .device-table th,
+        .device-table td {
+            padding: 0.8rem 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .card-header h5 {
+            font-size: 1.05rem;
+        }
+
+        /* 配置模态框响应式样式 */
+        .config-modal-header {
+            padding: 15px 20px;
+        }
+
+        .config-modal-header .modal-title {
+            font-size: 1.1rem;
+        }
+
+        .config-modal-body {
+            padding: 15px;
+        }
+
+        .config-tabs {
+            gap: 5px;
+        }
+
+        .config-tabs .nav-link {
+            padding: 8px 12px;
+            font-size: 0.9rem;
+        }
+
+        .config-section {
+            padding: 15px;
+        }
+
+        .config-section-title {
+            font-size: 1rem;
+        }
+
+        .config-table th,
+        .config-table td {
+            padding: 10px;
+            font-size: 0.9rem;
+        }
+
+        .nested-table th,
+        .nested-table td {
+            padding: 8px 10px;
+            font-size: 0.85rem;
+        }
+
+        .config-warning {
+            padding: 10px 15px;
+            font-size: 0.9rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- 设备列表卡片 -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm mb-4 device-list-card">
+            <div class="card-header">
+                <h5><i class="fas fa-microchip"></i>Device List</h5>
+                <div class="d-flex align-items-center">
+                    <button class="btn btn-primary btn-sm" id="refreshDeviceList">
+                        <i class="fas fa-sync-alt"></i>Refresh List
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover device-table" id="deviceTable">
+                        <thead>
+                            <tr>
+                                <th scope="col" style="width: 5%">#</th>
+                                <th scope="col" style="width: 20%">Device ID</th>
+                                <th scope="col" style="width: 25%">Owner</th>
+                                <th scope="col" style="width: 20%">IP Address</th>
+                                <th scope="col" style="width: 10%">Status</th>
+                                <th scope="col" style="width: 20%">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="deviceTableBody">
+                            <tr>
+                                <td colspan="6" class="text-center py-4">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <p class="mt-2 mb-0">Loading device list...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="noDevicesMessage" class="alert alert-info" style="display: none;">
+                    <i class="fas fa-info-circle"></i>No devices found
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 日志查看功能已移至admin_view_log.html页面 -->
+
+{% endblock %}
+
+{% block scripts %}<script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 初始化SocketIO连接
+    const socket = io();
+
+    // 设备列表相关元素
+    const refreshDeviceList = document.getElementById('refreshDeviceList');
+    const deviceTableBody = document.getElementById('deviceTableBody');
+    const noDevicesMessage = document.getElementById('noDevicesMessage');
+
+    // 日志查看功能已移至admin_view_log.html页面
+
+    // 加载设备列表到表格
+    function loadDevicesTable() {
+        // 显示加载中
+        deviceTableBody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 mb-0">Loading device list...</p>
+                </td>
+            </tr>
+        `;
+
+        // 请求设备列表数据 - 使用load_admin_devices_list函数的结果
+        fetch('/admin/api/all_devices')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data && data.data.length > 0) {
+                    // 清空表格
+                    deviceTableBody.innerHTML = '';
+                    noDevicesMessage.style.display = 'none';
+
+                    // 按字母顺序排序设备
+                    data.data.sort((a, b) => a.id.localeCompare(b.id));
+
+                    // 填充表格
+                    data.data.forEach((device, index) => {
+                        const tr = document.createElement('tr');
+
+                        // 状态类和文本
+                        let statusClass = 'secondary';
+                        let statusText = 'Unknown';
+                        if (device.online) {
+                            statusClass = 'success';
+                            statusText = 'Online';
+                        } else {
+                            statusClass = 'danger';
+                            statusText = 'Offline';
+                        }
+
+                        // 所有者信息 - 优先显示用户名，其次显示用户ID
+                        let ownerInfo = 'Unbound';
+                        if (device.owner_username) {
+                            ownerInfo = `${device.owner_username} (${device.owner_id})`;
+                        } else if (device.owner_id) {
+                            ownerInfo = device.owner_id;
+                        }
+
+                        // 格式化所有者信息显示
+                        let ownerHtml = ownerInfo;
+                        if (ownerInfo !== 'Unbound' && ownerInfo !== 'Unknown') {
+                            ownerHtml = `<span class="owner-badge">${ownerInfo}</span>`;
+                        }
+
+                        // 创建行内容
+                        tr.innerHTML = `
+                            <td>${index + 1}</td>
+                            <td><span class="device-id">${device.id}</span></td>
+                            <td id="owner-cell-${device.id}">${ownerHtml}</td>
+                            <td>${device.ip || '未知'}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <span class="device-status device-status-${device.online ? 'online' : 'offline'}"></span>
+                                    <span class="badge bg-${statusClass}">${statusText}</span>
+                                </div>
+                            </td>
+                            <td class="device-actions">
+                                <button class="btn btn-primary btn-sm view-config" data-device-id="${device.id}">
+                                    <i class="fas fa-cog"></i> Configure
+                                </button>
+                                <a href="/admin/view_log?device=${device.id}" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-file-alt"></i> View Logs
+                                </a>
+                            </td>
+                        `;
+
+                        // 所有者信息已在后端处理，不需要额外请求
+
+                        // 添加到表格
+                        deviceTableBody.appendChild(tr);
+
+                        // 添加查看配置按钮事件
+                        tr.querySelector('.view-config').addEventListener('click', function() {
+                            console.log(`Clicked configuration button for device ${device.id}`);
+                            showDeviceConfig(device.id);
+                        });
+
+                        // 日志查看功能已改为直接链接到admin_view_log页面
+                    });
+                } else {
+                    // 显示无设备消息
+                    deviceTableBody.innerHTML = '';
+                    noDevicesMessage.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Failed to load devices list:', error);
+                deviceTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center">
+                            <div class="alert alert-danger mb-0">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Failed to load device list: ${error.message}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+    }
+
+    // 详情功能已移除
+
+    // 刷新设备列表
+    refreshDeviceList.addEventListener('click', function() {
+        loadDevicesTable();
+    });
+
+    // 显示设备配置模态框
+    function showDeviceConfig(deviceId) {
+        console.log(`Starting to display configuration modal for device ${deviceId}`);
+
+        // 检查是否已存在模态框，如果存在则移除
+        let existingModal = document.getElementById('deviceConfigModal');
+        if (existingModal) {
+            document.body.removeChild(existingModal);
+        }
+
+        // 创建加载中的模态框
+        const modal = document.createElement('div');
+        modal.className = 'modal fade';
+        modal.id = 'deviceConfigModal';
+        modal.setAttribute('tabindex', '-1');
+        modal.setAttribute('aria-labelledby', 'deviceConfigModalLabel');
+        modal.setAttribute('aria-hidden', 'true');
+
+        modal.innerHTML = `
+            <div class="modal-dialog modal-xl modal-dialog-centered">
+                <div class="modal-content config-modal-content">
+                    <div class="modal-header config-modal-header">
+                        <h5 class="modal-title" id="deviceConfigModalLabel">
+                            <i class="fas fa-cog me-2"></i>Device Configuration: <span class="device-id-title">${deviceId}</span>
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body config-modal-body">
+                        <div class="config-loading">
+                            <div class="spinner-grow text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="loading-text">Loading device configuration...</p>
+                        </div>
+                    </div>
+                    <div class="modal-footer config-modal-footer">
+                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i>Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // 添加到文档
+        document.body.appendChild(modal);
+
+        // 初始化Bootstrap模态框
+        const modalInstance = new bootstrap.Modal(modal);
+        modalInstance.show();
+
+        // 获取设备配置信息
+        console.log(`Starting to fetch configuration for device ${deviceId}`);
+        fetch(`/admin/api/device_full_config/${deviceId}`)
+            .then(response => {
+                console.log(`Device ${deviceId} configuration API response status:`, response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log(`Device ${deviceId} configuration API response data:`, data);
+                if (data.success && data.config) {
+                    // 更新模态框内容
+                    console.log(`Updating configuration modal content for device ${deviceId}`);
+                    updateConfigModalContent(modal, deviceId, data.config);
+                } else {
+                    // 显示错误信息
+                    console.error(`Failed to get configuration for device ${deviceId}:`, data.message);
+                    const modalBody = modal.querySelector('.modal-body');
+                    modalBody.innerHTML = `
+                        <div class="alert alert-danger config-error">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            ${data.message || 'Unable to retrieve device configuration'}
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error(`Failed to get configuration for device ${deviceId}:`, error);
+                // 显示错误信息
+                const modalBody = modal.querySelector('.modal-body');
+                modalBody.innerHTML = `
+                    <div class="alert alert-danger config-error">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Failed to get device configuration: ${error.message}
+                    </div>
+                `;
+            });
+
+        // 模态框关闭时删除
+        modal.addEventListener('hidden.bs.modal', function () {
+            document.body.removeChild(modal);
+        });
+    }
+
+    // 更新配置模态框内容
+    function updateConfigModalContent(modal, deviceId, config) {
+        console.log(`Starting to update configuration modal content for device ${deviceId}`);
+        console.log(`Configuration data:`, config);
+
+        // 创建配置分类 - 移除了唤醒词设置、音乐设置、状态标志、交互设置和链接设备
+        const categories = [
+            { key: 'system', title: 'System Settings', icon: 'fas fa-server' },
+            { key: 'owner', title: 'Owner Information', icon: 'fas fa-user' },
+            { key: 'user_personalization', title: 'User Personalization', icon: 'fas fa-user-cog' },
+            { key: 'device_role_personalization', title: 'Device Role Personalization', icon: 'fas fa-robot' },
+            { key: 'STT', title: 'Speech Recognition Settings', icon: 'fas fa-headphones' },
+            { key: 'TTS', title: 'Text-to-Speech Settings', icon: 'fas fa-volume-up' },
+            { key: 'LLM', title: 'Large Language Model Settings', icon: 'fas fa-brain' },
+            { key: 'time_notify', title: 'Time Notification Settings', icon: 'fas fa-clock' },
+            { key: 'schedule_notify', title: 'Schedule Notification Settings', icon: 'fas fa-calendar' },
+            { key: 'weather', title: 'Weather Settings', icon: 'fas fa-cloud-sun' },
+            { key: 'audio_settings', title: 'Audio Settings', icon: 'fas fa-volume-down' },
+            { key: 'mqtt', title: 'MQTT Settings', icon: 'fas fa-network-wired' }
+        ];
+
+        // 创建导航标签页
+        let navTabs = '<ul class="nav nav-pills config-tabs" id="configTabs" role="tablist">';
+        let tabContent = '<div class="tab-content config-tab-content" id="configTabsContent">';
+
+        // 为每个分类创建标签页
+        categories.forEach((category, index) => {
+            const isActive = index === 0 ? 'active' : '';
+            const categoryData = config[category.key];
+
+            // 如果该分类有数据，创建标签页
+            if (categoryData) {
+                const categoryId = `${category.key}-tab`;
+
+                // 添加导航标签
+                navTabs += `
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link ${isActive}" id="${categoryId}" data-bs-toggle="tab"
+                                data-bs-target="#${categoryId}-pane" type="button" role="tab"
+                                aria-controls="${categoryId}-pane" aria-selected="${index === 0}">
+                            <i class="${category.icon}"></i> ${category.title}
+                        </button>
+                    </li>
+                `;
+
+                // 添加标签内容
+                tabContent += `
+                    <div class="tab-pane fade show ${isActive}" id="${categoryId}-pane" role="tabpanel"
+                         aria-labelledby="${categoryId}" tabindex="0">
+                        <div class="config-section">
+                            <h6 class="config-section-title">
+                                <i class="${category.icon}"></i>${category.title}
+                            </h6>
+                            <div class="table-responsive">
+                                <table class="table config-table">
+                                    <tbody>
+                `;
+
+                // 添加分类中的每个设置项
+                for (const [key, value] of Object.entries(categoryData)) {
+                    // 特殊处理天气数据中的days数组
+                    if (category.key === 'weather' && key === 'days') {
+                        tabContent += `
+                            <tr>
+                                <th>${key}</th>
+                                <td>
+                                    <div class="accordion config-accordion" id="weatherDaysAccordion">
+                        `;
+
+                        // 为每一天创建折叠面板
+                        value.forEach((day, dayIndex) => {
+                            const dayId = `weather-day-${dayIndex}`;
+                            tabContent += `
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="${dayId}-header">
+                                        <button class="accordion-button collapsed" type="button"
+                                                data-bs-toggle="collapse" data-bs-target="#${dayId}-collapse"
+                                                aria-expanded="false" aria-controls="${dayId}-collapse">
+                                            ${day.date} - ${day.description_zh} (${day.min_temp}°C ~ ${day.max_temp}°C)
+                                        </button>
+                                    </h2>
+                                    <div id="${dayId}-collapse" class="accordion-collapse collapse"
+                                         aria-labelledby="${dayId}-header" data-bs-parent="#weatherDaysAccordion">
+                                        <div class="accordion-body">
+                                            <table class="table table-sm nested-table">
+                                                <tbody>
+                            `;
+
+                            // 添加每一天的详细天气信息
+                            for (const [dayKey, dayValue] of Object.entries(day)) {
+                                tabContent += `
+                                    <tr>
+                                        <th>${dayKey}</th>
+                                        <td>${dayValue}</td>
+                                    </tr>
+                                `;
+                            }
+
+                            tabContent += `
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+
+                        tabContent += `
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    }
+                    // 处理嵌套对象
+                    else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+                        tabContent += `
+                            <tr>
+                                <th class="config-key">${key}</th>
+                                <td class="config-nested-value">
+                                    <table class="table nested-table">
+                                        <tbody>
+                        `;
+
+                        for (const [nestedKey, nestedValue] of Object.entries(value)) {
+                            tabContent += `
+                                <tr>
+                                    <th class="nested-key">${nestedKey}</th>
+                                    <td class="nested-value">${typeof nestedValue === 'object' ? JSON.stringify(nestedValue, null, 2) : nestedValue}</td>
+                                </tr>
+                            `;
+                        }
+
+                        tabContent += `
+                                        </tbody>
+                                    </table>
+                                </td>
+                            </tr>
+                        `;
+                    }
+                    // 处理数组
+                    else if (Array.isArray(value)) {
+                        tabContent += `
+                            <tr>
+                                <th class="config-key">${key}</th>
+                                <td class="config-array-value">${JSON.stringify(value, null, 2)}</td>
+                            </tr>
+                        `;
+                    }
+                    // 处理简单值
+                    else {
+                        tabContent += `
+                            <tr>
+                                <th class="config-key">${key}</th>
+                                <td class="config-value">${value}</td>
+                            </tr>
+                        `;
+                    }
+                }
+
+                tabContent += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        });
+
+        navTabs += '</ul>';
+        tabContent += '</div>';
+
+        // 更新模态框内容
+        const modalBody = modal.querySelector('.modal-body');
+        modalBody.innerHTML = navTabs + tabContent;
+
+        // 添加危险区域（仅供查看）
+        const modalFooter = modal.querySelector('.modal-footer');
+        modalFooter.innerHTML = `
+            <div class="alert alert-warning config-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>This page is for viewing device configuration only. Please contact the development team for modifications.</span>
+            </div>
+            <button type="button" class="btn btn-primary" data-bs-dismiss="modal">
+                <i class="fas fa-times me-1"></i>Close
+            </button>
+        `;
+    }
+
+    // 日志查看功能已移至admin_view_log.html页面
+
+    // 初始化加载设备列表
+    loadDevicesTable();
+});
+</script>
+{% endblock %}

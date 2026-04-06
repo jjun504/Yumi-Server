@@ -1,0 +1,26 @@
+{
+    "server": {
+        "host": "0.0.0.0",
+        "port": 5000,
+        "debug": false
+    },
+    "database": {
+        "host": "localhost",
+        "user": "root",
+        "password": "",
+        "database": "smart_assistant",
+        "charset": "utf8mb4"
+    },
+    "mqtt": {
+        "broker": "broker.emqx.io",
+        "port": 1883,
+        "username": null,
+        "password": null,
+        "topic_prefix": "your_topic_prefix"
+    },
+    "udp": {
+        "port": 8884,
+        "discovery_port": 50000,
+        "session_timeout": 3600.0
+    }
+}

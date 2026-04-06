@@ -1,0 +1,57 @@
+# Log files
+*.log
+Log/
+logs/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.venv/
+venv/
+
+# Configuration files
+config/const_settings.json
+config/settings.json
+config/wake_stats.txt
+config.json
+
+# System settings
+config/system_settings.json
+
+# Runtime device state
+device_configs/*/details.json
+device_configs/*/new_settings.json
+device_configs/*/system.log
+
+# User data
+user/
+
+# Schedule logs and user data
+schedule/*.txt
+schedule/log.txt
+schedule/*.data
+
+# Server recordings & generated audio
+server_recordings/
+sound/volcano/
+
+# User-uploaded avatars (runtime user content)
+static/avatars/*/
+
+# YouTube OAuth tokens
+youtube/*.pickle
+youtube/token*

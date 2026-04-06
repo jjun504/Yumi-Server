@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="{{ url_for('static', filename='Small_logo.png') }}" type="image/png">
+    <title>Smart Speaker Control</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+        input[type="range"] {
+            width: 100%;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .current-config {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+        }
+        .command-buttons {
+            margin-top: 20px;
+        }
+        .command-buttons button {
+            margin-right: 10px;
+        }
+        .send-text {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Smart Speaker Control</h1>
+
+        <!-- 音量控制 -->
+        <label for="volume">Volume:</label>
+        <input type="range" id="volume" name="volume" min="0" max="100" value="{{ config.volume }}"
+            onchange="updateConfig('music_volume', this.value)">
+
+        <!-- 电源控制 -->
+        <label for="power">Power:</label>
+        <input type="checkbox" id="power" name="power" {% if config.power %}checked{% endif %}
+            onchange="updateConfig('hw_started', this.checked)">
+
+        <!-- 命令按钮 -->
+        <div class="command-buttons">
+            <button onclick="sendCommand('Previous Song')">Previous Song</button>
+            <button onclick="sendCommand('Next Song')">Next Song</button>
+            <button onclick="sendCommand('Pause')">Pause</button>
+        </div>
+
+        <!-- 发送 text 的表单 -->
+        <div class="send-text">
+            <h2>Send Command</h2>
+            <input type="text" id="text_input" placeholder="Enter command here...">
+            <button onclick="sendText()">Send</button>
+        </div>
+    </div>
+
+    <a href="/userchat" class="btn">chat</a>
+
+    <!-- 显示当前配置 -->
+    <div class="current-config">
+        <h2>Current Config</h2>
+        <p>Volume: <span id="current_volume">{{ config.volume }}</span></p>
+        <p>Power: <span id="current_power">{{ config.power }}</span></p>
+        <p>Answer: <span id="current_answer">{{ config.answer }}</span></p>
+    </div>
+
+    <script>
+        // 初始化 WebSocket 连接
+        const socket = io();
+
+        // 监听配置更新
+        socket.on('config_update', function (data) {
+            for (const [key, value] of Object.entries(data)) {
+                if (key === 'music_volume') {
+                    document.getElementById('current_volume').textContent = value;
+                    document.getElementById('volume').value = value;
+                } else if (key === 'hw_started') {
+                    document.getElementById('current_power').textContent = value ? 'On' : 'Off';
+                    document.getElementById('power').checked = value;
+                } else if (key === 'answer') {
+                    document.getElementById('current_answer').textContent = value;
+                }
+            }
+        });
+
+        // 更新配置的函数
+        function updateConfig(key, value) {
+            fetch('/update_config', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ [key]: value })
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Success:', data);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        }
+
+        // 发送命令的函数
+        function sendCommand(command) {
+            fetch('/update_config', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ command: command })
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Command sent:', command);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        }
+
+        // 发送 text 的函数
+        function sendText() {
+            const text = document.getElementById('text_input').value;
+            if (!text) {
+                alert('Please enter a command!');
+                return;
+            }
+
+            fetch('/update_config', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ text: text })
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Text sent:', text);
+                    document.getElementById('text_input').value = ''; // 清空输入框
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        }
+    </script>
+</body>
+</html>

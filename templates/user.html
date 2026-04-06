@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="{{ url_for('static', filename='Small_logo.png') }}" type="image/png">
+    <title>Smart Speaker Control</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .current-config {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+        }
+
+        .command-buttons {
+            margin-top: 20px;
+        }
+
+        .command-buttons button {
+            margin-right: 10px;
+        }
+
+        .send-text {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Smart Speaker Control</h1>
+
+        <!-- 音量控制 -->
+        <label for="volume">Volume:</label>
+        <input type="range" id="volume" name="volume" min="0" max="100" value="{{ config.volume }}"
+            onchange="updateConfig('music_volume', this.value)">
+
+        <!-- 电源控制 -->
+        <label for="power">Power:</label>
+        <input type="checkbox" id="power" name="power" {% if config.power %}checked{% endif %}
+            onchange="updateConfig('power', this.checked)">
+
+        <!-- 命令按钮 -->
+        <div class="command-buttons">
+            <button onclick="sendCommand('上一首')">Previous Song</button>
+            <button onclick="sendCommand('下一首')">Next Song</button>
+            <button onclick="sendCommand('结束对话')">Pause</button>
+            <!-- <button onclick="sendCommand('继续')">Continue</button> -->
+        </div>
+
+        <!-- 发送 text 的表单 -->
+        <div class="send-text">
+            <h2>Send Command</h2>
+            <input type="text" id="text_input" placeholder="Enter command here...">
+            <button onclick="sendText()">Send</button>
+        </div>
+    </div>
+
+    <a href="/userchat" class="btn">chat</a>
+
+    <!-- 显示当前配置 -->
+    <div class="current-config">
+        <h2>Current Config</h2>
+        <p>Volume: <span id="current_volume">{{ config.volume }}</span></p>
+        <p>Power: <span id="current_power">{{ config.power }}</span></p>
+        <!-- <p>Text: <span id="current_text">{{ config.text }}</span></p> -->
+        <!-- <p>Command: <span id="current_command">{{ config.command }}</span></p> -->
+        <p>Answer : <span id="current_answer">{{ config.answer }}</span></p>
+    </div>
+
+    <script>
+        // 初始化 WebSocket 连接
+        const socket = io({
+            reconnection: true,        // 启用重连
+            reconnectionAttempts: 5,   // 最大重连次数
+            reconnectionDelay: 1000,   // 重连延迟(ms)
+            reconnectionDelayMax: 5000 // 最大重连延迟(ms)
+        });
+
+        // 监听重连事件
+        socket.on('reconnect', (attemptNumber) => {
+            console.log('重新连接成功，尝试次数:', attemptNumber);
+            // 重新获取最新状态
+            socket.emit('request_initial_state');
+        });
+
+        socket.on('reconnect_attempt', (attemptNumber) => {
+            console.log('正在尝试重新连接，尝试次数:', attemptNumber);
+        });
+
+        socket.on('reconnect_error', (error) => {
+            console.log('重新连接失败:', error);
+        });
+
+        // 监听配置更新
+        socket.on('config_update', function (data) {
+            for (const [key, value] of Object.entries(data)) {
+                if (key === 'music_volume') {
+                    document.getElementById('current_volume').textContent = Math.round(value * 100);
+                    document.getElementById('volume').value = Math.round(value * 100);
+                } else if (key === 'power') {
+                    document.getElementById('current_power').textContent = value;
+                    document.getElementById('power').checked = value;
+                } else if (key === 'command') {
+                    document.getElementById('current_command').textContent = value;
+                } else if (key === 'answer') {
+                    document.getElementById('current_answer').textContent = value;
+                }
+            }
+        });
+
+        // 更新配置的函数
+        function updateConfig(key, value) {
+            // 如果是音量，将0-100的值转换为0-1
+            if (key == 'music_volume' || key == 'general_volume') {
+                console.log("before value : " + value)
+                value = parseFloat(value) / 100;
+                console.log("after value : " + value)
+            }
+            
+            fetch('/update_config', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ [key]: value })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Success:', data);
+            });
+        }
+
+        // 函数：从服务器获取最新的配置并更新页面
+        function fetchLatestAnswer() {
+            fetch('/get_answer')
+                .then(response => response.json())
+                .then(data => {
+                    // 更新页面上的 'answer' 值
+                    if (document.getElementById('current_answer') && data.answer !== null) {
+                        document.getElementById('current_answer').textContent = data.answer;
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                });
+        }
+
+        // 每3秒钟获取一次最新的 'answer'
+        setInterval(fetchLatestAnswer, 3000);
+        
+        // 发送命令的函数
+        function sendCommand(command) {
+            fetch('/update_config', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ command: command })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Command sent:', command);
+                });
+        }
+
+        // 发送 text 的函数
+        function sendText() {
+            const text = document.getElementById('text_input').value;
+            fetch('/update_config', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ command: text })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Text sent:', text);
+                });
+        }
+    </script>
+</body>
+
+</html>

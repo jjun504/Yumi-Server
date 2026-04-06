@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="{{ url_for('static', filename='Small_logo.png') }}" type="image/png">
+    <title>Character Memory Animation Demo</title>
+    <style>
+        :root {
+            --primary: #0A2E5D;
+            --accent: #4361ee;
+            --surface: #FFFFFF;
+            --background: #F5F7FA;
+            --text: #1A202C;
+            --radius: 12px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+
+        body {
+            background: var(--background);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: var(--primary);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .demo-section {
+            background: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: 0 8px 24px rgba(10, 46, 93, 0.08);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .control-group {
+            margin-bottom: 2rem;
+        }
+
+        .control-label {
+            display: block;
+            margin-bottom: 1rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        /* 角色记忆容器样式 */
+        .memory-container {
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid #e2e8f0;
+            max-height: 200px;
+            overflow-y: auto;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .memory-container:hover {
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.1);
+            border-color: rgba(67, 97, 238, 0.3);
+        }
+
+        .memory-content {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #4a5568;
+            text-align: justify;
+            transition: opacity 0.5s ease;
+        }
+
+        .memory-content p {
+            margin-bottom: 10px;
+            text-align: justify;
+        }
+
+        /* 更新动画效果 */
+        @keyframes glowBorder {
+            0% {
+                clip-path: inset(0 100% 100% 0);
+            }
+            25% {
+                clip-path: inset(0 0 100% 0);
+            }
+            50% {
+                clip-path: inset(0 0 0 100%);
+            }
+            75% {
+                clip-path: inset(100% 0 0 0);
+            }
+            100% {
+                clip-path: inset(0 100% 100% 0);
+            }
+        }
+
+        .memory-container.updating::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 2px solid #4361ee;
+            border-radius: 10px;
+            animation: glowBorder 1.2s linear forwards;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .memory-container.updating .memory-content {
+            opacity: 0.5;
+        }
+
+        /* 滚动条美化 */
+        .memory-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .memory-container::-webkit-scrollbar-track {
+            background: rgba(67, 97, 238, 0.05);
+            border-radius: 3px;
+        }
+
+        .memory-container::-webkit-scrollbar-thumb {
+            background: rgba(67, 97, 238, 0.2);
+            border-radius: 3px;
+        }
+
+        /* 按钮样式 */
+        .demo-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .demo-button {
+            padding: 0.75rem 1.5rem;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+
+        .demo-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.2);
+        }
+
+        .demo-button:active {
+            transform: translateY(1px);
+        }
+
+        /* 示例记忆内容 */
+        .memory-examples {
+            margin-top: 2rem;
+        }
+
+        .memory-example {
+            padding: 1rem;
+            background: rgba(67, 97, 238, 0.05);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .memory-example:hover {
+            background: rgba(67, 97, 238, 0.1);
+        }
+
+        .memory-example h3 {
+            margin-bottom: 0.5rem;
+            color: var(--accent);
+        }
+
+        .memory-example p {
+            font-size: 0.9rem;
+            color: #718096;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Character Memory Animation Demo</h1>
+
+        <div class="demo-section">
+            <div class="control-group">
+                <label class="control-label">Character Memory</label>
+                <div class="memory-container" id="character-memory">
+                    <div class="memory-content">
+                        <p id="summary-content">这里是角色记忆的内容。当有新的记忆更新时，会先有一个光效围绕整个框转一圈，然后再显示新的内容。文本采用两端对齐的方式显示，使其看起来更加整齐美观。</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="demo-buttons">
+                <button class="demo-button" id="triggerAnimation">触发动画效果</button>
+                <button class="demo-button" id="resetContent">重置内容</button>
+            </div>
+
+            <div class="memory-examples">
+                <h2>点击下面的示例更新记忆内容：</h2>
+                
+                <div class="memory-example" data-memory="As the conversation began on May 11, 2025, at 23:31:34, the user greeted me with a 'hello' and expressed feelings of loneliness, saying 'I miss you.' I responded, and the user asked about my activities, to which I replied that I was preparing small eats and inquired about their flavor preferences. The conversation continued with discussions about sleep, with the user asking about it and me suggesting setting an alarm for the next day.">
+                    <h3>示例记忆 1</h3>
+                    <p>基础对话记忆，包含问候和日常交流</p>
+                </div>
+                
+                <div class="memory-example" data-memory="The user and I have been discussing their work project for the past week. They're developing a new mobile application for health tracking and have encountered challenges with the user interface design. I've suggested several resources and design patterns that might help, and they've been implementing some of these ideas. Yesterday, they mentioned making significant progress with the navigation system after following my recommendation to use a tab-based approach rather than a drawer menu.">
+                    <h3>示例记忆 2</h3>
+                    <p>工作项目相关的长期记忆</p>
+                </div>
+                
+                <div class="memory-example" data-memory="The user enjoys cooking Italian cuisine, particularly pasta dishes. They've mentioned making carbonara, bolognese, and pesto pasta from scratch. They live in an apartment with their cat named Whiskers, who is 3 years old. The user works as a software developer and enjoys hiking on weekends. Their birthday is on August 15th, and they mentioned planning a trip to Japan next year. They prefer coffee over tea and usually drink it black with no sugar.">
+                    <h3>示例记忆 3</h3>
+                    <p>用户个人信息和偏好的详细记忆</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const summaryElement = document.getElementById('summary-content');
+            const memoryContainer = document.getElementById('character-memory');
+            const triggerButton = document.getElementById('triggerAnimation');
+            const resetButton = document.getElementById('resetContent');
+            const memoryExamples = document.querySelectorAll('.memory-example');
+            
+            // 原始内容
+            const originalContent = summaryElement.textContent;
+            
+            // 触发动画按钮
+            triggerButton.addEventListener('click', function() {
+                updateSummaryDisplay("这是一个新的记忆内容，通过点击'触发动画效果'按钮更新。您可以看到更新前有一个光效围绕整个框转一圈，然后才显示这段新的内容。这个动画效果使得内容更新更加生动有趣，提供了更好的用户体验。");
+            });
+            
+            // 重置内容按钮
+            resetButton.addEventListener('click', function() {
+                updateSummaryDisplay(originalContent);
+            });
+            
+            // 示例记忆点击事件
+            memoryExamples.forEach(example => {
+                example.addEventListener('click', function() {
+                    const memoryContent = this.getAttribute('data-memory');
+                    updateSummaryDisplay(memoryContent);
+                });
+            });
+            
+            // 更新summary显示
+            function updateSummaryDisplay(summary) {
+                if (summaryElement && memoryContainer) {
+                    // 添加更新中的类，触发动画
+                    memoryContainer.classList.add('updating');
+                    
+                    // 等待动画完成后更新内容
+                    setTimeout(() => {
+                        if (summary && summary.trim() !== '') {
+                            summaryElement.textContent = summary;
+                        } else {
+                            summaryElement.textContent = "No character memory available yet. Start a conversation to create memories.";
+                        }
+                        
+                        // 动画完成后移除更新中的类
+                        setTimeout(() => {
+                            memoryContainer.classList.remove('updating');
+                        }, 200);
+                    }, 1000); // 等待1秒，让动画有足够时间显示
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>

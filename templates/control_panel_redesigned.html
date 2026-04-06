@@ -1,0 +1,4554 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="{{ url_for('static', filename='Small_logo.png') }}" type="image/png">
+    <title>Smart Voice Control Center</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <style>
+        :root {
+            --primary: #0A2E5D;
+            --accent: #4361ee;
+            --surface: #FFFFFF;
+            --background: #F5F7FA;
+            --text: #1A202C;
+            --radius: 12px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --container-width: 1200px;
+            --container-width-tablet: 800px;
+            --container-width-mobile: 100%;
+            --sidebar-width: 280px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+
+        body {
+            background: var(--background);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* 主容器 */
+        .main-container {
+            max-width: var(--container-width);
+            margin: 2rem auto;
+            padding: 0 2rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 响应式布局 */
+        @media (max-width: 1280px) {
+            .main-container {
+                max-width: var(--container-width-tablet);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                max-width: var(--container-width-mobile);
+                padding: 0 1rem;
+            }
+        }
+
+        /* 桌面端布局 */
+        .desktop-layout {
+            display: flex;
+            gap: 1.5rem;
+            width: 100%;
+            min-height: 100%;
+            position: relative;
+        }
+
+        .main-content {
+            width: 65%;
+            position: relative;
+        }
+
+        .sidebar {
+            width: 35%;
+        }
+
+        ::-webkit-scrollbar {
+            width: 12px;
+            height: 12px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #ccd4f8;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+
+        .sidebar .control-group,
+        .main-content .control-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar .control-group {
+            height: 100%;
+        }
+
+        .sidebar .action-buttons {
+            margin-top: auto;
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+
+        .sidebar #chattBtn {
+            flex: 1;
+        }
+
+        /* 响应式布局调整 */
+        @media (max-width: 1024px) {
+            .desktop-layout {
+                flex-direction: column;
+            }
+
+            .main-content,
+            .sidebar {
+                width: 100%;
+            }
+
+            .sidebar .control-panel,
+            .main-content .control-panel {
+                height: auto;
+                min-height: auto;
+            }
+        }
+
+        /* 控制面板高度设置 */
+        .sidebar .control-panel {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow-y: scroll;
+
+        }
+
+        /* 统一控制面板样式 */
+        .control-panel {
+            background: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: 0 8px 24px rgba(10, 46, 93, 0.08);
+            padding: 2rem;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+            /* margin-top: 2rem; */
+        }
+
+        /* 控制面板环形装饰元素 */
+        .panel-circle {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.12;
+            z-index: -1;
+        }
+
+        .panel-circle-1 {
+            width: 600px;
+            height: 600px;
+            border: 30px solid #d0cde9;
+            top: -60px;
+            right: 15%;
+            box-shadow: 0 0 30px rgba(67, 97, 238, 0.3);
+            animation: float-panel 18s ease-in-out infinite;
+        }
+
+        .panel-circle-2 {
+            width: 400px;
+            height: 400px;
+            border: 30px solid #d0cde9;
+            bottom: -70px;
+            box-shadow: 0 0 20px rgba(67, 97, 238, 0.2);
+            animation: pulse-panel 12s ease-in-out infinite;
+        }
+
+        @keyframes float-panel {
+            0% {
+                transform: translateY(0) rotate(0deg);
+            }
+
+            50% {
+                transform: translateY(-10px) rotate(3deg);
+            }
+
+            100% {
+                transform: translateY(0) rotate(0deg);
+            }
+        }
+
+        @keyframes pulse-panel {
+            0% {
+                transform: scale(1);
+                opacity: 0.12;
+            }
+
+            50% {
+                transform: scale(1.08);
+                opacity: 0.15;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 0.12;
+            }
+        }
+
+        /* 头部设计 */
+        .control-header {
+            background: linear-gradient(135deg, var(--surface) 0%, var(--accent) 100%);
+            border-radius: var(--radius);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        /* 不规则环形设计元素 */
+        .circle-decoration {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.15;
+            z-index: -1;
+        }
+
+        .circle-1 {
+            width: 200px;
+            height: 200px;
+            background: linear-gradient(45deg, #334abd, #ebecee);
+            top: -80px;
+            right: 30%;
+            box-shadow: 0 0 30px rgba(67, 97, 238, 0.3);
+            animation: float 15s ease-in-out infinite;
+        }
+
+        .circle-2 {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, #006ba5, #b3c1ff);
+            bottom: -30px;
+            left: 15%;
+            box-shadow: 0 0 20px rgba(67, 97, 238, 0.2);
+            animation: float 12s ease-in-out infinite reverse;
+        }
+
+        .circle-3 {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(225deg, #4e39d9, #4361ee);
+            top: 40%;
+            right: 35%;
+            box-shadow: 0 0 15px rgba(67, 97, 238, 0.2);
+            animation: pulse 8s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0) rotate(0deg);
+            }
+
+            50% {
+                transform: translateY(-15px) rotate(5deg);
+            }
+
+            100% {
+                transform: translateY(0) rotate(0deg);
+            }
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 0.15;
+            }
+
+            50% {
+                transform: scale(1.1);
+                opacity: 0.18;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 0.15;
+            }
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        .header-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .device-info {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .device-status {
+            background: rgba(10, 46, 93, 0.08);
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius);
+            font-size: 0.9rem;
+        }
+
+        .header-model {
+            height: 110px;
+            margin-left: 1rem;
+        }
+
+        /* 初始化按钮 */
+        .init-container {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        #openInitBtn {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 2rem;
+            background: var(--accent);
+            color: var(--surface);
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: var(--transition);
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.2);
+            margin-top: 10px;
+            z-index: 5;
+        }
+
+        #openInitBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(67, 97, 238, 0.3);
+        }
+
+        /* 禁用状态 */
+        .control-panel:not(.enabled) {
+            opacity: 0.5;
+            pointer-events: none;
+            filter: grayscale(0.8);
+            border-top: 6px black dotted;
+            position: relative;
+            /* 确保相对定位 */
+        }
+
+        .control-panel:not(.enabled)::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 4rem;
+            color: var(--accent);
+            font-weight: 700;
+            padding: 50px;
+            border-radius: 7px;
+            background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><path fill='%230A2E5D' d='M17 9V7c0-2.8-2.2-5-5-5S7 4.2 7 7v2c-1.7 0-3 1.3-3 3v7c0 1.7 1.3 3 3 3h10c1.7 0 3-1.3 3-3v-7c0-1.7-1.3-3-3-3zm-8-2c0-1.7 1.3-3 3-3s3 1.3 3 3v2H9V7zm3 11c-1.1 0-2-.9-2-2s.9-2 2-2s2 .9 2 2s-.9 2-2 2z'/></svg>");
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 100px;
+            width: 100px;
+            height: 100px;
+            z-index: 10;
+        }
+
+        /* 控制元素样式 */
+        .controls-title {
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .control-group {
+            margin-bottom: 2rem;
+        }
+
+        .control-label {
+            display: block;
+            margin-bottom: 1rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .volume-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 16px;
+            background: #E2E8F0;
+            border-radius: 4px;
+            margin: 1rem 0;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .volume-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            border: none;
+        }
+
+        .volume-slider:hover {
+            background: #D1D8E0;
+        }
+
+        .volume-slider:focus {
+            background: #C5D0E0;
+        }
+
+        .control-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .control-button {
+            padding: 0.75rem;
+            background: var(--accent);
+            color: var(--surface);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 500;
+        }
+
+        .control-button:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        /* 弹窗系统 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(10, 46, 93, 0.6);
+            backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .init-modal {
+            background: var(--surface);
+            border-radius: var(--radius);
+            width: 90%;
+            max-width: 85vh;
+            max-height: 90vh;
+            box-shadow: 0 24px 48px rgba(10, 46, 93, 0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid rgba(67, 97, 238, 0.1);
+            position: relative;
+        }
+
+        .init-modal::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent) 0%, rgba(67, 97, 238, 0.2) 100%);
+        }
+
+        /* 头部区域 */
+        .init-modal-header {
+            padding: 2rem 2rem 1rem;
+            border-bottom: 2px solid rgba(67, 97, 238, 0.1);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            position: relative;
+        }
+
+
+        .init-modal h2 {
+            font-size: 1.8rem;
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .init-modal h2::before {
+            content: '<i class=' bx bxs-cog' ></i>';
+            font-size: 1.4em;
+            filter: drop-shadow(0 2px 4px rgba(67, 97, 238, 0.2));
+        }
+
+        /* 表单内容区域 */
+        .init-modal-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 2rem 0rem;
+            scroll-behavior: smooth;
+        }
+
+        .form-step.active {
+            display: block;
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        /* 表单输入组 */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.8rem;
+            font-weight: 600;
+            color: var(--primary);
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid #E2E8F0;
+            border-radius: 8px;
+            background: var(--surface);
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.1);
+            padding-left: 1.2rem;
+        }
+
+        .form-group select {
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230A2E5D'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 14px;
+        }
+
+        .form-group textarea {
+            min-height: 120px;
+            line-height: 1.6;
+            resize: vertical;
+        }
+
+        /* 错误提示 */
+        .error-message {
+            color: #e53e3e;
+            font-size: 0.85rem;
+            margin-top: 0.6rem;
+            display: none;
+            padding: 0.6rem 0.8rem;
+            background: rgba(229, 62, 62, 0.05);
+            border-radius: 6px;
+            border-left: 3px solid #e53e3e;
+            border-right: 3px solid #e53e3e;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 操作按钮 */
+        .form-actions {
+            position: sticky;
+            bottom: 0;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, var(--surface) 20%);
+            padding: 2rem 0 2rem;
+            margin-top: 2rem;
+            z-index: 5;
+        }
+
+        #startInitBtn {
+            padding: 1.2rem 3rem;
+            font-size: 1.1rem;
+            background: linear-gradient(135deg, var(--accent) 0%, #3652c9 100%);
+            border-radius: 50px;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            border: none;
+            color: white;
+            cursor: pointer;
+        }
+
+        #startInitBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(67, 97, 238, 0.3);
+        }
+
+        #startInitBtn.loading::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg,
+                    transparent 25%,
+                    rgba(255, 255, 255, 0.2) 50%,
+                    transparent 75%);
+            animation: shine 1.5s infinite;
+        }
+
+        @keyframes shine {
+            100% {
+                transform: translateX(100%);
+            }
+        }
+
+        /* 滚动条美化 */
+        .init-modal-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .init-modal-content::-webkit-scrollbar-track {
+            background: rgba(67, 97, 238, 0.05);
+            border-radius: 4px;
+        }
+
+        .init-modal-content::-webkit-scrollbar-thumb {
+            background: rgba(67, 97, 238, 0.2);
+            border-radius: 4px;
+            border: 2px solid transparent;
+            background-clip: padding-box;
+        }
+
+        /* 配置区块样式 */
+        .config-section {
+            background: rgba(67, 97, 238, 0.05);
+            border-radius: var(--radius);
+            padding: 1.2rem;
+            margin-bottom: 1.2rem;
+        }
+
+        .config-section h4 {
+            color: var(--primary);
+            margin-bottom: 0.8rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(67, 97, 238, 0.1);
+        }
+
+        .config-section p {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+        }
+
+        /* 输入提示 */
+        .input-hint {
+            font-size: 0.8rem;
+            color: var(--text-light);
+            margin-top: 0.5rem;
+        }
+
+        /* 成功消息 */
+        .success-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            min-width: 280px;
+            max-width: 350px;
+            background: #ffffff;
+            color: #2d3748;
+            padding: 0;
+            border-radius: var(--radius);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+
+        .success-message.show {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .init-modal {
+                max-width: 95%;
+                max-height: 95vh;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .init-modal-content {
+                padding: 0 1.5rem 0rem;
+            }
+
+            #startInitBtn {
+                padding: 1rem;
+                font-size: 1rem;
+            }
+
+            .two-column {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 开关样式 */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+            justify-content: flex-end;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-label {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #E2E8F0;
+            border-radius: 34px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .toggle-label:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            border-radius: 50%;
+            transition: var(--transition);
+        }
+
+        input:checked+.toggle-label {
+            background-color: var(--accent);
+        }
+
+        input:checked+.toggle-label:before {
+            transform: translateX(26px);
+        }
+
+        /* 功能按钮容器 */
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin: 1rem auto;
+            align-items: center;
+            justify-content: center;
+            max-width: 80%;
+        }
+
+        /* 桌面端按钮优化 */
+        @media (min-width: 1025px) {
+            .action-buttons {
+                max-width: 100%;
+                justify-content: space-between;
+            }
+
+            .tab-link {
+                flex: 1;
+            }
+
+            #chattBtn {
+                width: 100%;
+                max-width: none;
+            }
+        }
+
+        /* 快速操作容器样式 */
+        .quick-actions-container {
+            margin-top: 2rem;
+            border-top: 1px solid rgba(67, 97, 238, 0.1);
+            padding-top: 1.5rem;
+            margin-bottom: 0px;
+        }
+
+        .quick-actions-container .action-buttons {
+            display: flex;
+            gap: 1.5rem;
+            max-width: 100%;
+            margin: 0;
+        }
+
+        @media (min-width: 1025px) {
+            .quick-actions-container .action-buttons {
+                justify-content: flex-start;
+            }
+
+            .quick-actions-container .tab-link {
+                flex: 0 0 auto;
+                min-width: 180px;
+            }
+        }
+
+        /* 移除链接下划线 */
+        .tab-link {
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        /* 聊天按钮样式 */
+        #chattBtn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.85rem 3rem;
+            background: linear-gradient(135deg, var(--accent) 0%, #3652c9 100%);
+            color: white;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.2);
+            flex: 1;
+            max-width: 180px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #chattBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(67, 97, 238, 0.3);
+        }
+
+        #chattBtn:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 8px rgba(67, 97, 238, 0.2);
+        }
+
+        #chattBtn::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg,
+                    transparent 25%,
+                    rgba(255, 255, 255, 0.1) 50%,
+                    transparent 75%);
+            transform: rotate(45deg);
+            transition: all 0.8s;
+            opacity: 0;
+        }
+
+        #chattBtn:hover::after {
+            left: 100%;
+            opacity: 1;
+        }
+
+        #chattBtn i {
+            font-size: 1.2rem;
+        }
+
+        /* 配置按钮样式 */
+        #configBtn {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            border: 2px solid rgba(67, 97, 238, 0.15);
+            color: var(--accent);
+            border-radius: 50%;
+            font-size: 1.4rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+            box-shadow: 0 4px 10px rgba(10, 46, 93, 0.05);
+        }
+
+        #configBtn:hover {
+            background: rgba(67, 97, 238, 0.05);
+            transform: rotate(30deg);
+            border-color: rgba(67, 97, 238, 0.3);
+        }
+
+        #configBtn:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 5px rgba(10, 46, 93, 0.05);
+        }
+
+        /* 必填项标记 */
+        .required {
+            color: #e53e3e;
+            margin-left: 2px;
+        }
+
+
+
+        /* 设备网格样式 */
+        .device-grid {
+            display: flex;
+            gap: 1.2rem;
+            padding: 1rem 0 0.5rem 0;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            scrollbar-color: var(--accent) transparent;
+            margin-bottom: 0;
+            flex-wrap: wrap;
+            flex: 1;
+        }
+
+        /* 在桌面端使用网格布局 */
+        @media (min-width: 1025px) {
+            .device-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+                overflow-x: visible;
+            }
+        }
+
+        /* 在平板和移动端使用水平滚动 */
+        @media (max-width: 1024px) {
+            .device-grid {
+                overflow-x: auto;
+                flex-wrap: nowrap;
+            }
+
+            .device-grid::-webkit-scrollbar {
+                height: 6px;
+            }
+
+            .device-grid::-webkit-scrollbar-track {
+                background: rgba(67, 97, 238, 0.05);
+                border-radius: 3px;
+            }
+
+            .device-grid::-webkit-scrollbar-thumb {
+                background: rgba(67, 97, 238, 0.2);
+                border-radius: 3px;
+            }
+        }
+
+
+
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        /* 节标题样式 */
+        .section-title {
+            font-size: 1.4rem;
+            color: var(--primary);
+            margin: 2rem 0 1.2rem;
+            padding-bottom: 0.8rem;
+            border-bottom: 1px solid rgba(67, 97, 238, 0.1);
+            position: relative;
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 60px;
+            height: 3px;
+            background: var(--accent);
+            border-radius: 3px;
+        }
+
+        /* 按钮组样式 */
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            width: 100%;
+        }
+
+        .button-group button {
+            flex: 1;
+        }
+
+        /* 取消按钮样式 */
+        .cancel-button {
+            padding: 0.8rem 1.5rem;
+            font-size: 0.95rem;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            color: #4a5568;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .cancel-button:hover {
+            background: #e2e8f0;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .cancel-button:active {
+            transform: translateY(1px);
+        }
+
+        /* 美化确认按钮 */
+        #confirmBtn {
+            padding: 0.8rem 1.5rem;
+            font-size: 0.95rem;
+            background: linear-gradient(135deg, var(--accent) 0%, #3652c9 100%);
+            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.25);
+        }
+
+        /* 按钮动效 */
+        .control-button,
+        .cancel-button,
+        #startInitBtn,
+        #openInitBtn {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-button::after,
+        .cancel-button::after,
+        #startInitBtn::after,
+        #openInitBtn::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg,
+                    rgba(255, 255, 255, 0) 0%,
+                    rgba(255, 255, 255, 0.2) 50%,
+                    rgba(255, 255, 255, 0) 100%);
+            transition: all 0.8s;
+        }
+
+        .control-button:hover::after,
+        .cancel-button:hover::after,
+        #startInitBtn:hover::after,
+        #openInitBtn:hover::after {
+            left: 100%;
+        }
+
+        .close-btn {
+            position: absolute;
+            right: 0.7rem;
+            top: 1rem;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #f1f5f9;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            color: #64748b;
+            font-size: 2rem;
+            z-index: 15;
+        }
+
+        .close-btn:hover {
+            background: #e2e8f0;
+            transform: scale(1.1);
+            color: #4a5568;
+        }
+
+        .close-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Settings Modal and Danger Zone Styles */
+        .switch-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+
+        .status-badge {
+            padding: 0.35rem 0.8rem;
+            border-radius: 1rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .status-badge.online {
+            background-color: rgba(56, 161, 105, 0.1);
+            color: #38A169;
+        }
+
+        .danger-zone {
+            margin-top: 3rem;
+            padding: 1.5rem;
+            border: 1px dashed #e53e3e;
+            border-radius: var(--radius);
+            background-color: rgba(229, 62, 62, 0.05);
+        }
+
+        .danger-title {
+            color: #e53e3e;
+            margin-top: 0;
+        }
+
+        .danger-title::after {
+            background: #e53e3e;
+        }
+
+        .danger-text {
+            color: #718096;
+            margin-bottom: 1.5rem;
+        }
+
+        .danger-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .danger-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.8rem 1rem;
+            background: white;
+            color: #4a5568;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .danger-button:hover {
+            background: #f7fafc;
+            transform: translateY(-1px);
+        }
+
+        .danger-button.unbind-button {
+            color: #e53e3e;
+            border-color: #e53e3e;
+            position: relative;
+            align-self: flex-end;
+        }
+
+        .danger-button.unbind-button:hover {
+            background: rgba(229, 62, 62, 0.1);
+        }
+
+        .smart-device-grid {
+            display: flex;
+            margin: 10px 15px;
+            gap: 10px;
+        }
+
+        .device-card {
+            background-color: white;
+            border-radius: 10px;
+            padding: 12px 15px;
+            flex: 1;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+            position: relative;
+            transition: all 0.25s ease;
+            border: 1px solid #f0f0f0;
+            overflow: hidden;
+            height: 145px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .device-card:hover {
+            box-shadow: 0 5px 15px rgba(67, 97, 238, 0.1);
+            transform: translateY(-2px);
+        }
+
+        /* 桌面端设备卡片优化 */
+        @media (min-width: 1025px) {
+            .device-card {
+                height: 145px;
+            }
+
+            .device-header {
+                margin-bottom: 0.5rem;
+            }
+        }
+
+        .device-card.active {
+            background-color: #f0f7ff;
+            border-left: 3px solid #4361ee;
+        }
+
+        .device-card.deleting {
+            pointer-events: none;
+            position: relative;
+        }
+
+        .device-card.deleting::after {
+            content: "Deleting...";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            font-weight: bold;
+            border-radius: 10px;
+            z-index: 10;
+        }
+
+        .device-header {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .device-controls {
+            position: relative;
+            min-height: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .device-controls .toggle-switch {
+            position: absolute;
+            bottom: -12px;
+            right: 0;
+        }
+
+        .device-title {
+            display: flex;
+            align-items: center;
+            max-width: 70%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .device-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .device-card:hover .device-actions {
+            opacity: 1;
+        }
+
+        .edit-icon,
+        .delete-icon {
+            font-size: 14px;
+            color: #999;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .edit-icon:hover {
+            color: #4361ee;
+            background-color: rgba(67, 97, 238, 0.1);
+        }
+
+        .delete-icon:hover {
+            color: #e53e3e;
+            background-color: rgba(229, 62, 62, 0.1);
+        }
+
+        .device-location {
+            padding: 4px 0;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .device-status {
+            font-size: 11px;
+            color: #999;
+            margin-top: 2px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 26px;
+            
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.toggle-slider {
+            background-color: #4361ee;
+        }
+
+        input:checked+.toggle-slider:before {
+            transform: translateX(24px);
+        }
+
+        .add-device-card {
+            border: 2px dashed #ccc;
+            background-color: #fafafa;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 120px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 0;
+        }
+
+        .add-device-card:hover {
+            border-color: #4361ee;
+            background-color: #f0f5ff;
+        }
+
+        .add-device-content {
+            display: flex;
+            align-items: center;
+            color: #666;
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .add-icon {
+            font-size: 20px;
+            margin-left: 8px;
+            color: #4361ee;
+        }
+
+        /* 添加设备模态框样式 */
+        .device-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            /* 防止滚动 */
+            background-color: rgba(10, 46, 93, 0.6);
+            backdrop-filter: blur(8px);
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .modal-content {
+            background: #ffffff;
+            margin: 60px auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 680px;
+            box-shadow: 0 10px 25px rgba(10, 46, 93, 0.12);
+            border: 1px solid rgba(67, 97, 238, 0.1);
+            position: relative;
+            transform: translateY(0);
+            transition: transform 0.3s ease-out;
+            overflow: visible;
+        }
+
+        .modal-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--accent);
+            border-radius: 8px 8px 0 0;
+        }
+
+        .modal-content h2 {
+            color: var(--primary);
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.6rem;
+            border-bottom: 1px solid rgba(67, 97, 238, 0.1);
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .modal-content h2 i {
+            margin-right: 8px;
+        }
+
+        .close-button {
+            position: absolute;
+            right: 15px;
+            top: 15px;
+            color: #64748b;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: #f1f5f9;
+            transition: all 0.2s ease;
+            z-index: 5;
+            line-height: 1;
+        }
+
+        .close-button:hover {
+            background: #e2e8f0;
+            transform: rotate(90deg);
+            color: #4a5568;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--primary);
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            height: 40px;
+            padding: 0 0.9rem;
+            border: 1px solid #E2E8F0;
+            border-radius: 6px;
+            background: var(--surface);
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 2px 8px rgba(67, 97, 238, 0.1);
+            outline: none;
+        }
+
+        .form-group select {
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230A2E5D'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.8rem center;
+            background-size: 14px;
+            padding-right: 2rem;
+        }
+
+        #mqttTopicPreview {
+            display: flex;
+            align-items: center;
+            height: 40px;
+            padding: 0 0.9rem;
+            background: rgba(67, 97, 238, 0.05);
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: var(--accent);
+            border: 1px dashed rgba(67, 97, 238, 0.3);
+            width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            /* 防止文本换行 */
+            box-sizing: border-box;
+        }
+
+        .submit-button {
+            background: linear-gradient(135deg, var(--accent) 0%, #3652c9 100%);
+            color: white;
+            height: 40px;
+            padding: 0 1.5rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 600;
+            width: 180px;
+            margin-top: 0.5rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(67, 97, 238, 0.25);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .submit-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.35);
+        }
+
+        .submit-button:active {
+            transform: translateY(1px);
+        }
+
+        .submit-button::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg,
+                    rgba(255, 255, 255, 0) 0%,
+                    rgba(255, 255, 255, 0.2) 50%,
+                    rgba(255, 255, 255, 0) 100%);
+            transition: all 0.8s;
+        }
+
+        .submit-button:hover::after {
+            left: 100%;
+        }
+
+        /* Form layout enhancements */
+        .form-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 0.8rem;
+            align-items: flex-start;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+            min-width: 0;
+            /* 防止flex子项溢出 */
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                flex-direction: column;
+                gap: 0;
+            }
+        }
+
+        .form-actions {
+            margin-top: 1.2rem;
+            display: flex;
+            justify-content: center;
+        }
+
+        .info-tooltip {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: rgba(67, 97, 238, 0.1);
+            color: var(--accent);
+            font-size: 11px;
+            cursor: help;
+            margin-left: 5px;
+            transition: all 0.2s ease;
+        }
+
+        .info-tooltip:hover {
+            background: rgba(67, 97, 238, 0.2);
+        }
+
+        /* Device type badge */
+        .device-type-badge {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 40px;
+            padding: 0 1rem;
+            background: rgba(67, 97, 238, 0.08);
+            color: var(--accent);
+            border-radius: 6px;
+            font-weight: 500;
+            border: 1px solid rgba(67, 97, 238, 0.15);
+            text-transform: capitalize;
+            font-size: 0.9rem;
+        }
+
+        /* 成功消息样式 - 简洁设计 */
+        .success-message {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100%);
+            min-width: 270px;
+            max-width: 350px;
+            background: #38a169;
+            color: white;
+            padding: 12px 15px;
+            border-radius: 4px;
+            z-index: 1000;
+            opacity: 0;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* Input connections modal styles */
+        .device-info-display {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background-color: var(--background);
+            border-radius: var(--radius);
+            margin-bottom: 15px;
+        }
+
+        #inputDeviceName {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .checkbox-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 250px;
+            overflow-y: auto;
+            padding: 10px;
+            background-color: var(--background);
+            border-radius: var(--radius);
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            background-color: var(--surface);
+            border: 1px solid #e2e8f0;
+            border-radius: var(--radius);
+            transition: var(--transition);
+        }
+
+        .checkbox-item:hover {
+            background-color: rgba(67, 97, 238, 0.08);
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            margin-right: 10px;
+        }
+
+        .checkbox-item label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .device-badge {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 12px;
+            background-color: rgba(67, 97, 238, 0.1);
+            color: var(--accent);
+            margin-left: 8px;
+        }
+
+        .loading-indicator {
+            text-align: center;
+            padding: 15px;
+            color: var(--text-secondary, #718096);
+        }
+
+        .modal-description {
+            margin-bottom: 20px;
+            color: var(--text-secondary, #718096);
+        }
+
+        .configure-icon {
+            cursor: pointer;
+            margin-right: 5px;
+            color: var(--accent);
+        }
+
+        /* 连接设备卡片样式 */
+        .connect-devices-card {
+            border: 2px dashed #009688;
+            background-color: rgba(0, 150, 136, 0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 120px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 15px;
+        }
+
+        .connect-devices-card:hover {
+            border-color: #00796b;
+            background-color: rgba(0, 150, 136, 0.1);
+        }
+
+        .connect-devices-content {
+            display: flex;
+            align-items: center;
+            color: #009688;
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .connect-icon {
+            font-size: 20px;
+            margin-left: 8px;
+            color: #009688;
+        }
+
+        /* 设备连接模态框样式 */
+        #deviceConnectionsModal .modal-content {
+            max-width: 800px;
+        }
+
+        .device-tables-container {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .device-table-wrapper {
+            flex: 1;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+
+        .device-table-header {
+            background-color: rgba(67, 97, 238, 0.08);
+            padding: 12px 15px;
+            font-weight: 600;
+            color: var(--accent);
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .device-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .device-table th,
+        .device-table td {
+            padding: 10px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .device-table th {
+            background-color: #f8fafc;
+            font-weight: 500;
+        }
+
+        .device-table tbody tr:hover {
+            background-color: rgba(67, 97, 238, 0.05);
+        }
+
+        .device-table .select-column {
+            width: 50px;
+            text-align: center;
+        }
+
+        .connection-line {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 10px 0;
+        }
+
+        .connection-line-arrow {
+            font-size: 24px;
+            color: var(--accent);
+        }
+
+        .success-message .message-content {
+            display: flex;
+            align-items: center;
+        }
+
+        .success-message i {
+            font-size: 18px;
+            margin-right: 10px;
+        }
+
+        .success-message .close-btn {
+            background: transparent;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 0;
+            margin-left: 15px;
+            opacity: 0.8;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 15px;
+            line-height: 1;
+        }
+
+        .success-message .close-btn i {
+            font-size: 20px;
+            margin: 0;
+            line-height: 1;
+        }
+
+        .success-message .close-btn:hover {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        .success-message.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* 成功消息动画 */
+        @keyframes fadeInDown {
+            0% {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-20px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        .success-message.show {
+            animation: fadeInDown 0.3s forwards;
+        }
+
+        /* 错误消息变体 */
+        .success-message.error {
+            background: #e53e3e;
+            box-shadow: 0 2px 10px rgba(229, 62, 62, 0.2);
+        }
+
+
+
+        /* 角色记忆容器样式 */
+        .memory-container {
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #e2e8f0;
+            max-height: 300px;
+            overflow-y: auto;
+            transition: all 0.3s ease;
+            position: relative;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .memory-container:hover {
+            box-shadow: 0 6px 16px rgba(67, 97, 238, 0.15);
+            border-color: rgba(67, 97, 238, 0.3);
+            background-color: #f9faff;
+        }
+
+        .memory-content {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #4a5568;
+            text-align: justify;
+            transition: opacity 0.5s ease;
+        }
+
+        .memory-content p {
+            margin-bottom: 10px;
+            text-align: justify;
+        }
+
+        /* 更新动画效果 */
+        @keyframes glowBorder {
+            0% {
+                clip-path: inset(0 100% 100% 0);
+            }
+
+            25% {
+                clip-path: inset(0 0 100% 0);
+            }
+
+            50% {
+                clip-path: inset(0 0 0 100%);
+            }
+
+            75% {
+                clip-path: inset(100% 0 0 0);
+            }
+
+            100% {
+                clip-path: inset(0 100% 100% 0);
+            }
+        }
+
+        .memory-container.updating::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 2px solid #4361ee;
+            border-radius: 10px;
+            animation: glowBorder 1.2s linear forwards;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .memory-container.updating .memory-content {
+            opacity: 0.5;
+        }
+
+        /* 滚动条美化 */
+        .memory-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .memory-container::-webkit-scrollbar-track {
+            background: rgba(67, 97, 238, 0.05);
+            border-radius: 3px;
+        }
+
+        .memory-container::-webkit-scrollbar-thumb {
+            background: rgba(67, 97, 238, 0.2);
+            border-radius: 3px;
+        }
+
+        /* 返回按钮样式 */
+        .back-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background-color: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--accent);
+            border-radius: 8px;
+            padding: 12px 25px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 1000;
+            transition: all 0.2s;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            text-decoration: none;
+        }
+
+        .back-button:hover {
+            background-color: rgba(67, 97, 238, 0.05);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .back-button svg {
+            width: 16px;
+            height: 16px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 返回按钮 -->
+    <a href="{{ url_for('discovery_model') }}" class="back-button" id="backButton">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7" />
+        </svg>
+    </a>
+    <main class="main-container">
+        <header class="control-header">
+            <div class="circle-decoration circle-1"></div>
+            <div class="circle-decoration circle-2"></div>
+            <div class="circle-decoration circle-3"></div>
+            <div class="header-content">
+                <div>
+                    <h1 class="header-title">Smart Assistant Control Panel</h1>
+                    <div class="device-info">
+                        <span class="device-status">Status: Online</span>
+                        <span class="device-status">Device ID: {{ device_id }}</span>
+                    </div>
+                </div>
+                <!-- <img class="header-model" src="{{ url_for('static', filename='model.png') }}" alt="Device Model"> -->
+            </div>
+            <div class="init-container" {% if is_initialized %}style="display: none;" {% endif %}>
+                <button id="openInitBtn"><i class='bx bxs-cog'></i> Start Device Initialization</button>
+            </div>
+        </header>
+
+        <!-- 桌面端布局 -->
+        <div class="desktop-layout">
+            <!-- 主内容区 -->
+            <div class="main-content">
+                <div class="control-panel" id="controlPanel">
+                    <div class="panel-circle panel-circle-1"></div>
+                    <div class="panel-circle panel-circle-2"></div>
+                    <section class="speaker-controls">
+                        <h2 class="controls-title">Device Control Panel</h2>
+
+                        <div class="control-group">
+                            <label class="control-label">General Volume : <span
+                                    id="current_general_volume">50</span></label>
+                            <input type="range" class="volume-slider" id="general_volume" min="0" max="100" value="50"
+                                oninput="updateVolumeDisplay('general_volume', 'current_general_volume')"
+                                onchange="updateConfig('audio_settings.general_volume', this.value)">
+                        </div>
+
+                        <div class="control-group">
+                            <label class="control-label">Music Control : <span
+                                    id="current_music_volume">50</span></label>
+                            <input type="range" class="volume-slider" id="music_volume" min="0" max="100" value="50"
+                                oninput="updateVolumeDisplay('music_volume', 'current_music_volume')"
+                                onchange="updateConfig('audio_settings.music_volume', this.value)">
+                        </div>
+
+                        <div class="control-group">
+                            <label class="control-label">Character Memory</label>
+                            <div class="memory-container" id="character-memory">
+                                <div class="memory-content">
+                                    <p id="summary-content">Loading character memory...</p>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <!-- 快速操作按钮 - 移到主内容区底部 -->
+                        <div class="control-group quick-actions-container">
+                            <label class="control-label">Quick Actions</label>
+                            <div class="action-buttons">
+                                <a href="/control?device_id={{ device_id }}&view=chat" class="tab-link">
+                                    <button id="chattBtn"><i class='bx bxs-message-square-dots'></i> Chat</button>
+                                </a>
+                                <a href="/control?device_id={{ device_id }}&view=settings" class="tab-link">
+                                    <button id="configBtn"><i class='bx bxs-cog'></i></button>
+                                </a>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- 侧边栏 -->
+            <div class="sidebar">
+                <div class="control-panel">
+                    <div class="panel-circle panel-circle-1"></div>
+                    <div class="panel-circle panel-circle-2"></div>
+
+                    <div class="control-group">
+                        <label class="control-label">Smart Devices</label>
+                        <div style="display: flex; flex-direction: column; gap: 0;">
+                            <!-- 设备卡片容器 - 将在JavaScript中动态填充 -->
+                            <main class="device-grid" id="deviceContainer" style="margin-bottom: 0;">
+                                <!-- 设备卡片将在这里动态添加 -->
+                            </main>
+
+                            <div class="device-card add-device-card" id="addDeviceCard">
+                                <div class="add-device-content">
+                                    Adding Smart Devices
+                                    <span class="add-icon">➕</span>
+                                </div>
+                            </div>
+
+                            <!-- 连接设备卡片 -->
+                            <div class="device-card connect-devices-card" id="connectDevicesCard">
+                                <div class="connect-devices-content">
+                                    Connect Devices
+                                    <span class="connect-icon"><i class='bx bx-link'></i></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="modal-overlay" id="initModal">
+        <div class="init-modal">
+            <div class="init-modal-header">
+                <h2>Personalized Configuration</h2>
+                <button type="button" id="closeInitBtn" class="close-btn">&times;</button>
+            </div>
+            <div class="init-modal-content">
+                <form id="initForm">
+                    <!-- User Basic Information Section -->
+                    <h3 class="section-title">User Information</h3>
+
+                    <div class="form-grid two-column">
+                        <!-- 原有字段：用户名和年龄 (第一行) -->
+                        <div class="form-group">
+                            <label>Name<span class="required">*</span></label>
+                            <input type="text" id="userName" required placeholder="Enter your name">
+                            <div class="error-message">This field is required</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Age<span class="required">*</span></label>
+                            <input type="number" id="userAge" required min="1" max="120" placeholder="Enter your age">
+                            <div class="error-message">Please enter a valid age (1-120)</div>
+                        </div>
+
+                        <!-- 原有字段：爱好和地区 (第二行) -->
+                        <div class="form-group">
+                            <label>Hobbies</label>
+                            <input type="text" id="userHobbie" placeholder="e.g. reading, sports, music">
+                        </div>
+
+                        <div class="form-group">
+                            <label>District<span class="required">*</span></label>
+                            <select id="userDistrict" required>
+                                <option value="">Select a district</option>
+                                <option value="Johor Bahru">Johor Bahru</option>
+                                <option value="Ayer Keroh">Ayer Keroh</option>
+                            </select>
+                            <div class="error-message">Please select a district</div>
+                        </div>
+                    </div>
+
+                    <!-- User description field -->
+                    <div class="form-group">
+                        <label>User Description</label>
+                        <textarea id="userDescription" placeholder="Short personal description (optional)"></textarea>
+                    </div>
+
+                    <!-- Character Configuration Section -->
+                    <h3 class="section-title">Character Configuration</h3>
+                    <div class="form-grid">
+                        <!-- Character Configuration Fields -->
+                        <div class="form-group">
+                            <label>Character Name<span class="required">*</span></label>
+                            <input type="text" id="characterName" required placeholder="Enter character name">
+                            <div class="error-message">This field is required</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Character Age<span class="required">*</span></label>
+                            <input type="number" id="characterAge" required min="18" max="40"
+                                placeholder="Recommended 25-30 years old">
+                            <div class="error-message">Please enter a valid age (18-40)</div>
+                            <div class="input-hint">Recommended age range: 25-30 years old</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Relation<span class="required">*</span></label>
+                            <select id="characterRelation" required>
+                                <option value="">Select a relation</option>
+                                <option value="Elder-sister">Elder Sister</option>
+                                <!-- <option value="Friend">Friend</option>
+                                <option value="Assistant">Assistant</option> -->
+                            </select>
+                            <div class="error-message">Please select an option</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Personality<span class="required">*</span></label>
+                            <select id="Character-Personality" required>
+                                <option value="">Select personality</option>
+                                <option value="Careful">Careful and Considerate</option>
+                                <option value="Cheerful">Cheerful and Lively</option>
+                                <option value="Cool">Calm and Composed</option>
+                                <option value="Lovely">Cute and Playful</option>
+                                <option value="Patient">Patient and Gentle</option>
+                                <option value="Warm">Warm and Caring</option>
+                            </select>
+                            <div class="error-message">Please select an option</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Background Profile<span class="required">*</span></label>
+                            <textarea id="userProfile"
+                                placeholder="Please describe your background in detail (minimum 50 characters)" readonly
+                                style="background-color: #f5f5f5;"></textarea>
+                            <div class="error-message">Please enter at least 50 characters</div>
+                            <div class="input-hint">Detailed information helps generate more accurate personalized
+                                configuration</div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" id="startInitBtn" onclick="processInitForm()">Start
+                            Initialization</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div class="modal-overlay" id="confirmModal">
+        <div class="init-modal">
+            <div class="init-modal-header">
+                <h2>Confirm Initialization Configuration</h2>
+            </div>
+            <div class="init-modal-content">
+                <p style="margin-bottom: 1.5rem; color: #718096; text-align: center;">The following configuration will
+                    be applied to the device:</p>
+                <div id="confirmContent"></div>
+                <div class="form-actions">
+                    <div class="button-group">
+                        <button id="cancelBtn" class="cancel-button" onclick="returnToForm()">Cancel</button>
+                        <button id="confirmBtn" class="control-button" onclick="confirmInitialization()"
+                            disabled>Confirm Submission</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Unbind Confirmation Modal -->
+    <div class="modal-overlay" id="unbindConfirmModal">
+        <div class="init-modal">
+            <div class="init-modal-header">
+                <h2>Unbind Device</h2>
+                <button type="button" class="close-btn" onclick="hideUnbindConfirm()">&times;</button>
+            </div>
+            <div class="init-modal-content">
+                <p style="margin-bottom: 1.5rem; color: #718096; text-align: center;">Are you sure you want to unbind
+                    this device from your account? This action cannot be undone.</p>
+                <div class="form-actions">
+                    <div class="button-group">
+                        <button onclick="hideUnbindConfirm()" class="cancel-button">Cancel</button>
+                        <button onclick="unbindDevice()" class="control-button"
+                            style="background-color: #e53e3e;">Unbind Device</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 弹出式添加设备表单 -->
+    <div id="addDeviceModal" class="device-modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2><i class='bx bx-plus-circle'></i>Add New Device</h2>
+            <form id="addDeviceForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="deviceName">Device Name</label>
+                        <input type="text" id="deviceName" required placeholder="Enter name">
+                    </div>
+                    <div class="form-group">
+                        <label for="deviceId">Device ID</label>
+                        <input type="text" id="deviceId" required placeholder="Enter device ID">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="deviceType">Device Type</label>
+                        <select id="deviceType" required>
+                            <option value="lighting">Lighting</option>
+                            <option value="climate">Climate</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="controlType">Control Type</label>
+                        <select id="controlType" required>
+                            <option value="input">Input</option>
+                            <option value="output">Output</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="deviceLocation">Location</label>
+                        <input type="text" id="deviceLocation" placeholder="e.g. Living Room">
+                    </div>
+                    <div class="form-group">
+                        <label>MQTT Topic <span class="info-tooltip" title="For communication">ⓘ</span></label>
+                        <div id="mqttTopicPreview">smart187/yumi_esp32s_DEVICE_ID</div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="submit-button">
+                        <i class='bx bx-plus'></i>Add Device
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="init-modal">
+            <div class="init-modal-header">
+                <h2>Settings</h2>
+                <button type="button" class="close-btn" onclick="hideSettingsModal()">&times;</button>
+            </div>
+            <div class="init-modal-content">
+                <!-- Device Information Section -->
+                <h3 class="section-title">Device Information</h3>
+                <div class="config-section">
+                    <p><strong>Device ID:</strong> <span id="settings-device-id">{{ device_id }}</span></p>
+                    <p><strong>IP Address:</strong> <span id="settings-ip-address">{{ device_ip }}</span></p>
+                    <p><strong>Status:</strong> <span class="status-badge online">Online</span></p>
+                </div>
+
+                <!-- Advanced Settings Section -->
+                <h3 class="section-title">Advanced Settings</h3>
+                <div class="form-group">
+                    <label class="switch-label">
+                        <span>Auto-reconnect</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked>
+                            <span class="toggle-label"></span>
+                        </label>
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label class="switch-label">
+                        <span>Notifications</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked>
+                            <span class="toggle-label"></span>
+                        </label>
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label>Device Name</label>
+                    <input type="text" id="deviceName" placeholder="Enter custom device name">
+                </div>
+
+                <!-- Danger Zone Section -->
+                <div class="danger-zone">
+                    <h3 class="section-title danger-title">Danger Zone</h3>
+                    <p class="danger-text">These actions are irreversible. Please proceed with caution.</p>
+
+                    <div class="danger-actions">
+                        <button class="danger-button" onclick="resetDeviceSettings()">
+                            <i class="bx bx-reset"></i> Reset Device Settings
+                        </button>
+
+                        <button class="danger-button unbind-button" onclick="showUnbindConfirm()">
+                            <i class="bx bx-unlink"></i> Unbind Device
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <div class="button-group">
+                        <button onclick="hideSettingsModal()" class="cancel-button">Cancel</button>
+                        <button onclick="saveSettings()" class="control-button">Save Settings</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Device Modal -->
+    <div class="device-modal" id="editDeviceModal">
+        <div class="modal-content">
+            <span class="close-button"
+                onclick="document.getElementById('editDeviceModal').style.display='none'">&times;</span>
+            <h2><i class='bx bx-edit'></i>Edit Device</h2>
+            <form id="editDeviceForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editDeviceName">Device Name</label>
+                        <input type="text" id="editDeviceName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Device Type</label>
+                        <div class="device-type-badge" id="editDeviceTypeBadge">Lighting</div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editDeviceLocation">Location</label>
+                        <input type="text" id="editDeviceLocation" placeholder="e.g. Living Room">
+                    </div>
+                </div>
+                <input type="hidden" id="editDeviceType">
+                <input type="hidden" id="editDeviceId">
+                <div class="form-actions">
+                    <button type="button" class="submit-button" onclick="saveDeviceEdit()">
+                        <i class='bx bx-save'></i>Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Input Device Connections Modal -->
+    <div class="device-modal" id="inputConnectionsModal">
+        <div class="modal-content">
+            <span class="close-button"
+                onclick="document.getElementById('inputConnectionsModal').style.display='none'">&times;</span>
+            <h2><i class='bx bx-link'></i>Configure Input Connections</h2>
+            <div class="modal-description">
+                <p>Select which output devices this input device should control:</p>
+            </div>
+            <form id="inputConnectionsForm">
+                <div class="form-group">
+                    <label>Input Device</label>
+                    <div class="device-info-display">
+                        <span id="inputDeviceName">Device Name</span>
+                        <span class="device-type-badge" id="inputDeviceType">Type</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Available Output Devices</label>
+                    <div id="outputDevicesList" class="checkbox-list">
+                        <!-- Output devices will be dynamically added here -->
+                        <div class="loading-indicator">Loading available devices...</div>
+                    </div>
+                </div>
+
+                <input type="hidden" id="connectionInputDeviceType">
+                <input type="hidden" id="connectionInputDeviceId">
+
+                <div class="form-actions">
+                    <button type="button" class="submit-button" onclick="saveInputConnections()">
+                        <i class='bx bx-save'></i>Save Connections
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Device Connections Modal -->
+    <div class="device-modal" id="deviceConnectionsModal">
+        <div class="modal-content">
+            <span class="close-button"
+                onclick="document.getElementById('deviceConnectionsModal').style.display='none'">&times;</span>
+            <h2><i class='bx bx-link'></i>Connect Devices</h2>
+            <div class="modal-description">
+                <p>Connect input devices to output devices. When an input device receives a signal, it will control the connected output devices.</p>
+            </div>
+
+            <div class="device-tables-container">
+                <div class="device-table-wrapper">
+                    <div class="device-table-header">Input Devices</div>
+                    <table class="device-table" id="inputDevicesTable">
+                        <thead>
+                            <tr>
+                                <th class="select-column">Select</th>
+                                <th>Device Name</th>
+                                <th>Type</th>
+                                <th>Location</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inputDevicesTableBody">
+                            <!-- Input devices will be dynamically added here -->
+                            <tr>
+                                <td colspan="4" class="loading-indicator">Loading input devices...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="connection-line">
+                    <span class="connection-line-arrow">→</span>
+                </div>
+
+                <div class="device-table-wrapper">
+                    <div class="device-table-header">Output Devices</div>
+                    <table class="device-table" id="outputDevicesTable">
+                        <thead>
+                            <tr>
+                                <th class="select-column">Select</th>
+                                <th>Device Name</th>
+                                <th>Type</th>
+                                <th>Location</th>
+                            </tr>
+                        </thead>
+                        <tbody id="outputDevicesTableBody">
+                            <!-- Output devices will be dynamically added here -->
+                            <tr>
+                                <td colspan="4" class="loading-indicator">Loading output devices...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="submit-button" onclick="saveDeviceConnections()">
+                    <i class='bx bx-save'></i>Save Connections
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+
+        // 全局变量，用于存储当前设备配置
+        let currentConfig = null;
+
+        // 更新音量显示函数
+        function updateVolumeDisplay(sliderId, displayId) {
+            const slider = document.getElementById(sliderId);
+            const display = document.getElementById(displayId);
+            if (slider && display) {
+                display.textContent = slider.value;
+            }
+        }
+
+        // 全局初始化函数
+        function showInitModal() {
+            console.log("Opening initialization modal");
+            const initModal = document.getElementById('initModal');
+            const openInitBtn = document.getElementById('openInitBtn');
+
+            if (initModal) {
+                initModal.style.display = 'flex';
+                if (openInitBtn) {
+                    openInitBtn.innerHTML = '⚙️ Initializing...';
+                }
+
+                // 预填充用户背景资料字段
+                const userProfile = document.getElementById('userProfile');
+                if (userProfile) {
+                    userProfile.value = "...........";
+                }
+            } else {
+                console.error("initModal not found");
+            }
+        }
+
+        // 全局处理初始化表单函数
+        function processInitForm() {
+            console.log("Processing init form");
+            const requiredFields = document.querySelectorAll('[required]');
+            let isValid = true;
+
+            // 验证所有必填字段
+            requiredFields.forEach(field => {
+                if (!validateField({ target: field })) {
+                    isValid = false;
+                }
+            });
+
+            if (!isValid) {
+                console.log("Form validation failed");
+                return;
+            }
+
+            console.log("Form validation passed, proceeding to confirmation");
+
+            // 收集数据
+            const configData = {
+                user: {
+                    name: document.getElementById('userName').value,
+                    age: document.getElementById('userAge').value,
+                    hobbies: document.getElementById('userHobbie').value || 'Unset',
+                    district: document.getElementById('userDistrict').value,
+                    profile: document.getElementById('userProfile').value
+                },
+                character: {
+                    name: document.getElementById('characterName').value,
+                    age: document.getElementById('characterAge').value,
+                    relation: document.getElementById('characterRelation').value,
+                    personality: document.getElementById('Character-Personality').value
+                }
+            };
+
+            // 获取下拉框文本
+            const relationSelect = document.getElementById('characterRelation');
+            const personalitySelect = document.getElementById('Character-Personality');
+            const relationText = relationSelect.options[relationSelect.selectedIndex].text;
+            const personalityText = personalitySelect.options[personalitySelect.selectedIndex].text;
+
+            // 更新确认内容
+            const confirmContent = document.getElementById('confirmContent');
+            confirmContent.innerHTML = `
+                <div class="config-section">
+                    <h4>User details</h4>
+                    <p><strong>Name: </strong>${configData.user.name}</p>
+                    <p><strong>Age: </strong>${configData.user.age} years old</p>
+                    <p><strong>Hobbies: </strong>${configData.user.hobbies}</p>
+                    <p><strong>District: </strong>${configData.user.district}</p>
+                </div>
+                <div class="config-section">
+                    <h4>Character details</h4>
+                    <p><strong>Character name: </strong>${configData.character.name}</p>
+                    <p><strong>Character Age: </strong>${configData.character.age} years old</p>
+                    <p><strong>Character Relation: </strong>${relationText}</p>
+                    <p><strong>Character Personality: </strong>${personalityText}</p>
+                </div>
+            `;
+
+            // 显示确认弹窗
+            const initModal = document.getElementById('initModal');
+            initModal.style.display = 'none';
+            const confirmModal = document.getElementById('confirmModal');
+            confirmModal.style.display = 'flex';
+            startCountdown();
+        }
+
+        // 验证字段函数
+        function validateField(e) {
+            const field = e.target;
+            const error = field.parentElement.querySelector('.error-message');
+
+            if (!error) return true;
+
+            if (field.id === 'userAge' || field.id === 'characterAge') {
+                const min = parseInt(field.min);
+                const max = parseInt(field.max);
+                const value = parseInt(field.value);
+
+                if (isNaN(value) || value < min || value > max) {
+                    showError(field, error);
+                    return false;
+                }
+            } else if (field.id === 'userProfile' && field.value.length < 50) {
+                showError(field, error);
+                return false;
+            } else if (field.tagName === 'SELECT' && !field.value) {
+                showError(field, error);
+                return false;
+            } else if (!field.value.trim()) {
+                showError(field, error);
+                return false;
+            }
+
+            return true;
+        }
+
+        // 显示错误函数
+        function showError(field, error) {
+            field.style.borderColor = '#e53e3e';
+            if (error) error.style.display = 'block';
+        }
+
+        // 倒计时函数
+        let countdownTimer;
+        function startCountdown() {
+            const confirmBtn = document.getElementById('confirmBtn');
+            let count = 3;
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = `Confirm submit（${count}）`;
+
+            clearInterval(countdownTimer);
+            countdownTimer = setInterval(() => {
+                count--;
+                confirmBtn.textContent = `Confirm submit（${count}）`;
+
+                if (count <= 0) {
+                    clearInterval(countdownTimer);
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = 'Confirm submit';
+                }
+            }, 1000);
+        }
+
+        // 确认初始化函数 - 重定向到DOMContentLoaded中的confirmInitialization函数
+        function confirmInitialization() {
+            // 这个函数现在只是一个包装器，实际逻辑在DOMContentLoaded中的confirmInitialization函数中
+            console.log("confirmInitialization called, redirecting to inner function");
+            // 不执行任何操作，让事件监听器处理
+        }
+
+        // 隐藏所有模态框 - 重定向到DOMContentLoaded中的hideModals函数
+        function hideAllModals() {
+            // 这个函数现在只是一个包装器，实际逻辑在DOMContentLoaded中的hideModals函数中
+            console.log("hideAllModals called, redirecting to hideModals");
+            // 不执行任何操作，让事件监听器处理
+        }
+
+        // 返回表单函数 - 重定向到DOMContentLoaded中的returnToForm函数
+        function returnToForm() {
+            // 这个函数现在只是一个包装器，实际逻辑在DOMContentLoaded中的returnToForm函数中
+            console.log("returnToForm called, redirecting to inner function");
+            // 不执行任何操作，让事件监听器处理
+        }
+
+        // 显示成功消息函数
+        function showSuccessMessage(message, isError = false) {
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success-message';
+            if (isError) {
+                successDiv.style.backgroundColor = '#e53e3e'; // Red for errors
+            }
+            successDiv.textContent = message;
+            document.body.appendChild(successDiv);
+
+            setTimeout(() => {
+                successDiv.classList.add('show');
+            }, 100);
+
+            setTimeout(() => {
+                successDiv.classList.remove('show');
+                setTimeout(() => successDiv.remove(), 500);
+            }, 3000);
+        }
+
+        // 当页面加载时检查初始化状态
+        document.addEventListener('DOMContentLoaded', function () {
+            // 清理旧的localStorage删除记录，解决重新添加相同ID设备的问题
+            localStorage.removeItem('deletedDevices');
+            console.log('已清理localStorage中的删除记录');
+
+            // 从服务器传递的变量获取初始化状态
+            const isInitialized = {{ is_initialized|tojson }};
+            console.log("Device initialization status:", isInitialized);
+
+            if (isInitialized) {
+                // 如果已初始化，隐藏初始化按钮并启用所有控制面板
+                const initContainer = document.querySelector('.init-container');
+                const controlPanels = document.querySelectorAll('.control-panel');
+
+                if (initContainer) {
+                    initContainer.style.display = 'none';
+                }
+
+                // 启用所有控制面板，包括主内容区和侧边栏
+                console.log("Enabling all control panels, found", controlPanels.length, "panels");
+                controlPanels.forEach(panel => {
+                    panel.classList.add('enabled');
+                    console.log("Control panel enabled:", panel);
+                });
+            } else {
+                console.log("Device not initialized, control panel will remain locked");
+            }
+
+            // 加入设备房间以接收summary更新
+            const deviceId = "{{ device_id }}";
+            const userId = "{{ user_id }}";
+            if (deviceId && socket) {
+                console.log(`Joining device room: ${deviceId}, User ID: ${userId}`);
+                socket.emit('join_device_room', {
+                    device_id: deviceId,
+                    user_id: userId
+                });
+
+                // 监听summary更新事件
+                socket.on('summary_update', function (data) {
+                    if (data.device_id === deviceId) {
+                        console.log("Received summary update:", data);
+                        updateSummaryDisplay(data.summary);
+                    }
+                });
+
+                // 请求当前的summary数据
+                console.log("Requesting current summary data");
+                socket.emit('request_summary', {
+                    device_id: deviceId,
+                    user_id: userId
+                });
+            }
+        });
+
+        // 更新summary显示
+        function updateSummaryDisplay(summary) {
+            const summaryElement = document.getElementById('summary-content');
+            const memoryContainer = document.getElementById('character-memory');
+
+            if (summaryElement && memoryContainer) {
+                console.log("Updating character memory display with:", summary);
+
+                // 添加更新中的类，触发动画
+                memoryContainer.classList.add('updating');
+
+                // 等待动画完成后更新内容
+                setTimeout(() => {
+                    if (summary && typeof summary === 'string' && summary.trim() !== '') {
+                        // Format the summary with proper paragraphs
+                        const formattedSummary = summary.split('\n').map(line => {
+                            if (line.trim() !== '') {
+                                return `<p>${line}</p>`;
+                            }
+                            return '';
+                        }).join('');
+
+                        summaryElement.innerHTML = formattedSummary;
+                    } else {
+                        summaryElement.innerHTML = "<p>No character memory available yet. Start a conversation to create memories.</p>";
+                    }
+
+                    // 动画完成后移除更新中的类
+                    setTimeout(() => {
+                        memoryContainer.classList.remove('updating');
+                    }, 200);
+                }, 500); // 减少等待时间，让更新更快
+            } else {
+                console.error("Summary element or memory container not found:", {
+                    summaryElement: !!summaryElement,
+                    memoryContainer: !!memoryContainer
+                });
+            }
+        }
+
+        // 强制启用所有控制面板的函数
+        function enableAllControlPanels() {
+            const controlPanels = document.querySelectorAll('.control-panel');
+            console.log("Force enabling all control panels, found", controlPanels.length, "panels");
+            controlPanels.forEach(panel => {
+                panel.classList.add('enabled');
+                console.log("Control panel force enabled:", panel);
+            });
+        }
+
+        // 当连接建立后请求最新配置
+        socket.on('connect', () => {
+            console.log("[SocketIO] Connected, requesting current configuration");
+            socket.emit('request_current_config', { device_id: "{{ device_id }}" });
+
+            // 连接成功后，强制启用所有控制面板
+            // setTimeout(enableAllControlPanels, 1000);
+        });
+
+        // 监听设备状态更新结果
+        socket.on('device_state_update_result', (data) => {
+            console.log("[SocketIO] Received device status update result:", data);
+
+            // 如果更新失败，恢复开关状态
+            if (!data.success) {
+                const switchElem = document.getElementById(`switch-${data.device_type}-${data.device_id_in_config}`);
+                if (switchElem) {
+                    // 将开关状态设置为与预期相反的值（即恢复到原来的状态）
+                    switchElem.checked = !data.expected_state;
+
+                    // 更新设备卡片的激活状态
+                    const deviceCard = document.getElementById(`card-${data.device_type}-${data.device_id_in_config}`);
+                    if (deviceCard) {
+                        deviceCard.classList.toggle('active', !data.expected_state);
+                    }
+
+                    // 显示错误消息
+                    showSuccessMessage(`Device ${data.device_id_in_config} status update failed`, true);
+                }
+            }
+        });
+
+
+        // 删除了有问题的checkDeletedDevices函数，它会阻止重新添加相同ID的设备
+
+        // 监听 current_config 事件，首次获取完整初始配置，进行更新显示
+        socket.on('current_config', (data) => {
+            console.log("[SocketIO] Received current configuration:", data);
+
+            // 检查设备容器是否存在
+            const deviceContainerCheck = document.getElementById('deviceContainer');
+            if (!deviceContainerCheck) {
+                console.error("Device container not found in current_config event!");
+            } else {
+                console.log("Device container found in current_config event, class:", deviceContainerCheck.className);
+            }
+
+            // 删除了checkDeletedDevices调用，允许重新添加相同ID的设备
+
+            // 更新全局配置变量
+            currentConfig = data;
+            console.log("Updated currentConfig:", currentConfig);
+
+            // 更新UI和渲染设备
+            updateUI(data);
+            console.log("Calling renderDevices from current_config event");
+            renderDevices(data); // 添加动态渲染设备的调用
+
+            // 检查配置中的初始化状态
+            if (data.system && data.system.initialized === true) {
+                console.log("Device initialization detected from configuration");
+                // 隐藏初始化按钮并启用所有控制面板
+                const initContainer = document.querySelector('.init-container');
+                const controlPanels = document.querySelectorAll('.control-panel');
+
+                if (initContainer) {
+                    initContainer.style.display = 'none';
+                }
+
+                // 启用所有控制面板，包括主内容区和侧边栏
+                controlPanels.forEach(panel => {
+                    panel.classList.add('enabled');
+                });
+            }
+        });
+
+        // 监听 config_update 事件，实时更新显示（后续广播更新都通过此事件）
+        socket.on('config_update', (data) => {
+            console.log("[SocketIO] Received configuration update:", data);
+
+            // 检查设备容器是否存在
+            const deviceContainerCheck = document.getElementById('deviceContainer');
+            if (!deviceContainerCheck) {
+                console.error("Device container not found in config_update event!");
+            } else {
+                console.log("Device container found in config_update event, class:", deviceContainerCheck.className);
+            }
+
+            // 删除了checkDeletedDevices调用，允许重新添加相同ID的设备
+
+            // 更新全局配置变量
+            currentConfig = data;
+            console.log("Updated currentConfig from config_update:", currentConfig);
+
+            // 更新UI和渲染设备
+            updateUI(data);
+            console.log("Calling renderDevices from config_update event");
+            renderDevices(data); // 更新设备显示
+
+            // 检查配置中的初始化状态，确保在配置更新时也能正确启用控制面板
+            if (data.system && data.system.initialized === true) {
+                const controlPanels = document.querySelectorAll('.control-panel');
+                controlPanels.forEach(panel => {
+                    panel.classList.add('enabled');
+                });
+            }
+        });
+
+        // 动态渲染设备卡片 - 使用createDeviceCard函数
+        function renderDevices(data) {
+            // 强制启用所有控制面板
+            // enableAllControlPanels();
+
+            // 获取设备容器元素
+            const deviceContainer = document.getElementById('deviceContainer');
+
+            // 检查设备容器是否存在
+            if (!deviceContainer) {
+                console.error("Device container element not found! ID: deviceContainer");
+                return;
+            }
+
+            console.log("Device container found:", deviceContainer);
+            console.log("Device container class:", deviceContainer.className);
+
+            // 清空现有设备容器
+            deviceContainer.innerHTML = '';
+
+            // 检查设备数据
+            if (!data) {
+                console.error("No data received in renderDevices");
+                return;
+            }
+
+            if (!data.devices) {
+                console.log("No devices data found in received data");
+                console.log("Received data:", data);
+                // 创建一个示例设备卡片，以便测试
+                const demoCard = createDeviceCard("demo", "demo1", "Demo Device", false, "Test Location");
+                deviceContainer.appendChild(demoCard);
+                console.log("Added demo device card for testing");
+                return;
+            }
+
+            console.log("Rendering devices with data:", JSON.stringify(data.devices));
+
+            // 遍历设备类型和设备
+            let deviceCount = 0;
+            for (const deviceType in data.devices) {
+                const devices = data.devices[deviceType];
+                console.log(`Processing device type: ${deviceType} with devices:`, JSON.stringify(devices));
+
+                for (const deviceId in devices) {
+                    const device = devices[deviceId];
+                    if (!device) {
+                        console.log(`Skipping invalid device: ${deviceId}`);
+                        continue; // 跳过无效设备
+                    }
+
+                    const deviceState = device.state;
+                    const deviceName = device.name || deviceId; // 使用name属性或设备ID作为名称
+                    const deviceLocation = device.location || "Not specified"; // 位置信息
+
+                    console.log(`Creating card for device: ${deviceId}, name: ${deviceName}, state: ${deviceState}`);
+                    try {
+                        const deviceCard = createDeviceCard(deviceType, deviceId, deviceName, deviceState, deviceLocation);
+                        deviceContainer.appendChild(deviceCard);
+                        console.log(`Device card added to container: ${deviceId}`);
+                        deviceCount++;
+                    } catch (error) {
+                        console.error(`Error creating device card for ${deviceId}:`, error);
+                    }
+                }
+            }
+
+            console.log("Finished rendering devices. Container now contains:", deviceCount, "devices");
+
+            // 如果没有设备，添加一个提示
+            if (deviceCount === 0) {
+                console.log("No devices found, adding a message");
+                const noDevicesMsg = document.createElement('div');
+                noDevicesMsg.className = 'no-devices-message';
+                noDevicesMsg.textContent = 'No devices found. Click "Adding Smart Devices" to add a new device.';
+                noDevicesMsg.style.padding = '20px';
+                noDevicesMsg.style.textAlign = 'center';
+                noDevicesMsg.style.color = '#718096';
+                deviceContainer.appendChild(noDevicesMsg);
+            }
+        }
+
+        // 更新页面显示的函数 - 已存在的保持不变，但不再需要固定的设备控制代码
+        function updateUI(data) {
+            // 保留处理音频设置、唤醒词设置和交互回答的代码
+            if (data.audio_settings) {
+                if (data.audio_settings.general_volume !== undefined) {
+                    const generalVolumeElement = document.getElementById('current_general_volume');
+                    const generalVolumeSlider = document.getElementById('general_volume');
+
+                    if (generalVolumeElement) {
+                        generalVolumeElement.textContent = data.audio_settings.general_volume;
+                    }
+
+                    if (generalVolumeSlider) {
+                        generalVolumeSlider.value = data.audio_settings.general_volume;
+                    }
+                }
+
+                if (data.audio_settings.music_volume !== undefined) {
+                    const musicVolumeElement = document.getElementById('current_music_volume');
+                    const musicVolumeSlider = document.getElementById('music_volume');
+
+                    if (musicVolumeElement) {
+                        musicVolumeElement.textContent = data.audio_settings.music_volume;
+                    }
+
+                    if (musicVolumeSlider) {
+                        musicVolumeSlider.value = data.audio_settings.music_volume;
+                    }
+                }
+            }
+
+            if (data.wake_word && data.wake_word.hardware_started !== undefined) {
+                const powerElement = document.getElementById('current_power');
+                if (powerElement) {
+                    powerElement.textContent = data.wake_word.hardware_started ? 'Open' : 'Close';
+                }
+
+                const powerSwitch = document.getElementById('power');
+                if (powerSwitch) {
+                    powerSwitch.checked = data.wake_word.hardware_started;
+                }
+            }
+
+            if (data.interaction && data.interaction.answer !== undefined) {
+                const answerElement = document.getElementById('current_answer');
+                if (answerElement) {
+                    answerElement.textContent = data.interaction.answer;
+                }
+            }
+
+            // 设备状态现在由renderDevices函数处理
+        }
+
+        // 配置更新函数
+        function updateConfig(key, value) {
+            if (!socket) {
+                alert("WebSocket not connected. Please try again.");
+                return;
+            }
+            const device_id = "{{ device_id }}";
+
+            // 对音量相关的值进行类型转换，确保是整数
+            if (key === 'audio_settings.general_volume' || key === 'audio_settings.music_volume' || key === 'audio_settings.notification_volume') {
+                // 将字符串转换为整数
+                value = parseInt(value, 10);
+                console.log(`Updating config: ${key} = ${value} (converted to integer)`);
+            } else {
+                console.log(`Updating config: ${key} = ${value}`);
+            }
+
+            // 立即更新UI显示
+            if (key === 'audio_settings.general_volume') {
+                const generalVolumeElement = document.getElementById('current_general_volume');
+                if (generalVolumeElement) {
+                    generalVolumeElement.textContent = value;
+                }
+            } else if (key === 'audio_settings.music_volume') {
+                const musicVolumeElement = document.getElementById('current_music_volume');
+                if (musicVolumeElement) {
+                    musicVolumeElement.textContent = value;
+                }
+            }
+
+            socket.emit('update_config', {
+                device_id: device_id,
+                config: { [key]: value }
+            });
+        }
+
+        // 添加新设备相关代码
+        const addDeviceCard = document.getElementById('addDeviceCard');
+        const connectDevicesCard = document.getElementById('connectDevicesCard');
+        const addDeviceModal = document.getElementById('addDeviceModal');
+        const deviceConnectionsModal = document.getElementById('deviceConnectionsModal');
+        const closeButton = document.querySelector('.close-button');
+        const addDeviceForm = document.getElementById('addDeviceForm');
+        const deviceNameInput = document.getElementById('deviceName');
+        const deviceIdInput = document.getElementById('deviceId');
+        const mqttTopicPreview = document.getElementById('mqttTopicPreview');
+
+        // 存储预览用的设备ID
+        let previewDeviceId = '';
+
+        // 生成随机设备ID
+        function generateDeviceId() {
+            return Math.random().toString(36).substring(2, 10);
+        }
+
+        // 更新MQTT主题预览
+        function updateMqttTopicPreview() {
+            const customDeviceId = deviceIdInput.value.trim();
+            const deviceId = customDeviceId || previewDeviceId;
+            mqttTopicPreview.textContent = `smart187/yumi_esp32s_${deviceId}`;
+        }
+
+        // 打开添加设备模态框
+        addDeviceCard.addEventListener('click', function () {
+            // 每次打开模态框生成一个新的预览ID
+            previewDeviceId = generateDeviceId();
+            addDeviceModal.style.display = 'block';
+            updateMqttTopicPreview();
+        });
+
+        // 关闭模态框
+        closeButton.addEventListener('click', function () {
+            addDeviceModal.style.display = 'none';
+        });
+
+        // 点击模态框外部关闭
+        window.addEventListener('click', function (event) {
+            if (event.target === addDeviceModal) {
+                addDeviceModal.style.display = 'none';
+            } else if (event.target === deviceConnectionsModal) {
+                deviceConnectionsModal.style.display = 'none';
+            }
+        });
+
+        // 连接设备卡片点击事件
+        connectDevicesCard.addEventListener('click', function() {
+            showDeviceConnectionsModal();
+        });
+
+        // 处理设备名称和ID更改，更新MQTT主题预览
+        deviceNameInput.addEventListener('input', updateMqttTopicPreview);
+        deviceIdInput.addEventListener('input', updateMqttTopicPreview);
+        document.getElementById('deviceType').addEventListener('change', updateMqttTopicPreview);
+
+        // 处理表单提交
+        addDeviceForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const deviceName = deviceNameInput.value.trim();
+            const customDeviceId = deviceIdInput.value.trim();
+            const deviceLocation = document.getElementById('deviceLocation').value.trim() || "Custom location";
+            const deviceType = document.getElementById('deviceType').value;
+            const controlType = document.getElementById('controlType').value;
+
+            // 使用用户输入的设备ID，如果没有则使用生成的ID
+            const deviceId = customDeviceId || previewDeviceId;
+            const mqttTopic = `smart187/yumi_esp32s_${deviceId}/control`;
+
+            console.log("Adding device:", {
+                name: deviceName,
+                id: deviceId,
+                type: deviceType,
+                control: controlType,
+                location: deviceLocation
+            });
+
+            // 创建一个新的设备配置对象
+            const newDevice = {
+                name: deviceName,
+                state: controlType === 'input' ? null : false,
+                data_type: "bool",
+                control_type: controlType,
+                mqtt_topic: mqttTopic,
+                location: deviceLocation
+            };
+
+            console.log("New device configuration:", newDevice);
+
+            // 创建一个临时变量来存储设备配置
+            let deviceConfig = {};
+            if (!deviceConfig[deviceType]) {
+                deviceConfig[deviceType] = {};
+            }
+            deviceConfig[deviceType][deviceId] = newDevice;
+
+            // 直接发送新设备配置到服务器
+            socket.emit('update_config', {
+                device_id: "{{ device_id }}",
+                config: {
+                    devices: {
+                        [deviceType]: {
+                            [deviceId]: newDevice
+                        }
+                    }
+                }
+            });
+
+            console.log("Device add request sent");
+
+            // 关闭模态框并重置表单
+            addDeviceModal.style.display = 'none';
+            addDeviceForm.reset();
+            previewDeviceId = '';
+
+            // 添加一个小延迟后请求最新配置，确保服务器有时间处理
+            setTimeout(() => {
+                socket.emit('request_current_config', { device_id: "{{ device_id }}" });
+            }, 500);
+        });
+
+        // 提取设备卡片创建逻辑到单独函数，减少重复代码
+        // 注意：renderDevices函数已在上面定义，这里只保留createDeviceCard函数
+
+        // 提取设备卡片创建逻辑到单独函数，减少重复代码
+        function createDeviceCard(deviceType, deviceId, deviceName, deviceState, deviceLocation) {
+            try {
+                console.log(`Creating device card with: type=${deviceType}, id=${deviceId}, name=${deviceName}, state=${deviceState}`);
+
+                if (!deviceType || !deviceId) {
+                    console.error("Missing required parameters for createDeviceCard:", { deviceType, deviceId });
+                    return document.createElement('div'); // 返回空元素而不是抛出错误
+                }
+
+                const deviceCard = document.createElement('article');
+                deviceCard.className = 'device-card';
+                deviceCard.id = `card-${deviceType}-${deviceId}`;
+
+                // 获取设备信息以确定是否为输入设备
+                let isInputDevice = false;
+                if (currentConfig && currentConfig.devices &&
+                    currentConfig.devices[deviceType] &&
+                    currentConfig.devices[deviceType][deviceId]) {
+                    const deviceInfo = currentConfig.devices[deviceType][deviceId];
+                    isInputDevice = deviceInfo.control_type === 'input';
+                }
+
+                // 处理设备状态
+                let isActive = false;
+                if (isInputDevice) {
+                    // 输入设备的状态可能是null，我们不应该将其视为激活状态
+                    isActive = deviceState === true;
+                    console.log(`Input device ${deviceId} state: ${deviceState}, isActive: ${isActive}`);
+                } else {
+                    // 输出设备的状态是布尔值
+                    isActive = Boolean(deviceState);
+                    console.log(`Output device ${deviceId} state: ${deviceState}, isActive: ${isActive}`);
+                }
+
+                if (isActive) deviceCard.classList.add('active');
+
+                // 确保所有插入的值都是字符串，防止null或undefined
+                const safeName = deviceName || deviceId || "Unknown Device";
+                const safeType = deviceType || "unknown";
+                const safeLocation = deviceLocation || "Not specified";
+
+                deviceCard.innerHTML = `
+                    <header class="device-header">
+                        <div class="device-title">
+                            ${safeName}
+                            <small>(${safeType})</small>
+                        </div>
+                        <div class="device-controls">
+                            <div class="device-actions">
+                                ${isInputDevice ? `
+                                <span class="configure-icon" title="Configure connections" onclick="configureInputConnections('${safeType}', '${deviceId}')">
+                                    <i class='bx bx-link'></i>
+                                </span>` : ''}
+                                <span class="edit-icon" title="Edit device" onclick="editDevice('${safeType}', '${deviceId}')">
+                                    <i class='bx bx-edit'></i>
+                                </span>
+                                <span class="delete-icon" title="Delete device" onclick="deleteDevice('${safeType}', '${deviceId}')">
+                                    <i class='bx bx-trash'></i>
+                                </span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="switch-${safeType}-${deviceId}"
+                                    ${isActive ? 'checked' : ''}
+                                    onchange="updateConfig('devices.${safeType}.${deviceId}.state', this.checked)">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </header>
+                    <div class="device-location">${safeLocation}</div>
+                    <div class="device-status">${isInputDevice ? 'Input device - Click to simulate sensor signal' : 'Click to toggle'}</div>
+                `;
+
+                // 添加点击事件监听器
+                deviceCard.addEventListener('click', function (e) {
+                    // 如果点击的不是开关、编辑或删除按钮
+                    if (!e.target.closest('.toggle-switch') &&
+                        !e.target.closest('.edit-icon') &&
+                        !e.target.closest('.delete-icon') &&
+                        !e.target.closest('.configure-icon')) {
+
+                        const switchElem = document.getElementById(`switch-${safeType}-${deviceId}`);
+                        if (!switchElem) {
+                            console.error(`Switch element not found for device: ${deviceId}`);
+                            return;
+                        }
+
+                        const newValue = !switchElem.checked;
+                        switchElem.checked = newValue;
+                        this.classList.toggle('active', newValue);
+
+                        if (isInputDevice) {
+                            console.log(`Input device ${deviceId} clicked, new state: ${newValue}`);
+                            // 更新输入设备状态
+                            updateConfig(`devices.${safeType}.${deviceId}.state`, newValue);
+                            // 更新所有连接的输出设备
+                            updateConnectedOutputDevices(safeType, deviceId, newValue);
+                        } else {
+                            console.log(`Output device ${deviceId} clicked, new state: ${newValue}`);
+                            updateConfig(`devices.${safeType}.${deviceId}.state`, newValue);
+                        }
+                    }
+                });
+
+                console.log(`Device card created for ${deviceId}`);
+                return deviceCard;
+            } catch (error) {
+                console.error("Error in createDeviceCard:", error);
+                // 返回一个空的div元素，而不是null，这样调用者可以安全地继续
+                return document.createElement('div');
+            }
+        }
+
+        // 删除设备函数
+        function deleteDevice(deviceType, deviceId) {
+            // 创建并显示自定义确认对话框
+            const deleteConfirmModal = document.createElement('div');
+            deleteConfirmModal.className = 'modal-overlay';
+            deleteConfirmModal.id = 'deleteConfirmModal';
+            deleteConfirmModal.style.display = 'flex';
+
+            deleteConfirmModal.innerHTML = `
+                <div class="init-modal">
+                    <div class="init-modal-header">
+                        <h2>Delete Device</h2>
+                        <button type="button" class="close-btn" onclick="hideDeleteConfirm()">&times;</button>
+                    </div>
+                    <div class="init-modal-content">
+                        <p style="margin: 1.5rem 0px; color: #718096; text-align: center;">
+                            Are you sure you want to delete this device: <strong>${deviceId}</strong>?<br>
+                            This action cannot be undone.
+                        </p>
+                        <div class="form-actions">
+                            <div class="button-group">
+                                <button onclick="hideDeleteConfirm()" class="cancel-button">Cancel</button>
+                                <button onclick="confirmDeleteDevice('${deviceType}', '${deviceId}')" class="control-button"
+                                    style="background-color: #e53e3e;">Delete Device</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(deleteConfirmModal);
+        }
+
+        // 隐藏删除确认对话框
+        function hideDeleteConfirm() {
+            const modal = document.getElementById('deleteConfirmModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        // 确认删除设备
+        function confirmDeleteDevice(deviceType, deviceId) {
+            console.log(`Deleting device: ${deviceType}.${deviceId}`);
+
+            // 显示删除中状态
+            const deviceCard = document.getElementById(`card-${deviceType}-${deviceId}`);
+            if (deviceCard) {
+                deviceCard.classList.add('deleting');
+                deviceCard.style.opacity = '0.5';
+            }
+
+            // 发送删除请求到服务器
+            socket.emit('delete_device', {
+                device_id: "{{ device_id }}",
+                device_type: deviceType,
+                target_device_id: deviceId
+            });
+
+            // 监听删除结果
+            socket.once('delete_device_result', function(result) {
+                if (result.status === 'success') {
+                    console.log(`Successfully deleted device: ${deviceType}.${deviceId}`);
+
+                    // 从DOM中移除设备卡片
+                    if (deviceCard) {
+                        deviceCard.remove();
+                    }
+
+                    // 显示成功消息
+                    showSuccessMessage('Device deleted successfully');
+
+                    // 删除了localStorage保存删除记录的代码，允许重新添加相同ID的设备
+                } else {
+                    console.error(`Failed to delete device: ${result.message}`);
+
+                    // 恢复设备卡片显示
+                    if (deviceCard) {
+                        deviceCard.classList.remove('deleting');
+                        deviceCard.style.opacity = '1';
+                    }
+
+                    // 显示错误消息
+                    showSuccessMessage(`Failed to delete device: ${result.message}`, true);
+                }
+            });
+
+            // 隐藏确认对话框
+            hideDeleteConfirm();
+        }
+
+        // 编辑设备函数
+        function editDevice(deviceType, deviceId) {
+            console.log(`Editing device: ${deviceType}.${deviceId}`);
+
+            // 获取当前设备信息
+            const deviceCard = document.getElementById(`card-${deviceType}-${deviceId}`);
+            if (!deviceCard) return;
+
+            const deviceTitle = deviceCard.querySelector('.device-title');
+            const deviceName = deviceTitle ? deviceTitle.textContent.trim().split('(')[0].trim() : '';
+            const deviceLocation = deviceCard.querySelector('.device-location').textContent;
+
+            // 打开编辑模态框
+            const editModal = document.getElementById('editDeviceModal');
+            const nameInput = document.getElementById('editDeviceName');
+            const locationInput = document.getElementById('editDeviceLocation');
+            const deviceTypeInput = document.getElementById('editDeviceType');
+            const deviceIdInput = document.getElementById('editDeviceId');
+            const deviceTypeBadge = document.getElementById('editDeviceTypeBadge');
+
+            // 填充表单
+            nameInput.value = deviceName;
+            locationInput.value = deviceLocation;
+            deviceTypeInput.value = deviceType;
+            deviceIdInput.value = deviceId;
+
+            // 设置设备类型徽章
+            if (deviceTypeBadge) {
+                deviceTypeBadge.textContent = deviceType;
+
+                // 根据设备类型设置不同的颜色
+                let badgeColor = 'rgba(67, 97, 238, 0.08)'; // 默认蓝色
+                let textColor = 'var(--accent)';
+
+                switch (deviceType) {
+                    case 'lighting':
+                        badgeColor = 'rgba(255, 193, 7, 0.1)';
+                        textColor = '#ff9800';
+                        break;
+                    case 'climate':
+                        badgeColor = 'rgba(0, 200, 83, 0.1)';
+                        textColor = '#00c853';
+                        break;
+                    case 'security':
+                        badgeColor = 'rgba(229, 57, 53, 0.1)';
+                        textColor = '#e53935';
+                        break;
+                    case 'entertainment':
+                        badgeColor = 'rgba(156, 39, 176, 0.1)';
+                        textColor = '#9c27b0';
+                        break;
+                }
+
+                deviceTypeBadge.style.backgroundColor = badgeColor;
+                deviceTypeBadge.style.color = textColor;
+                deviceTypeBadge.style.borderColor = textColor + '33'; // 添加透明度
+            }
+
+            // 显示模态框
+            editModal.style.display = 'block';
+        }
+
+        // 发送命令函数
+        function sendCommand(command) {
+            if (!socket) {
+                alert("WebSocket not connected. Please try again.");
+                return;
+            }
+            const device_id = "{{ device_id }}";
+            socket.emit('update_config', {
+                device_id: device_id,
+                config: { "interaction.command": command }
+            }, (response) => {
+                if (response.status === "success") {
+                    console.log("Command sent:", command);
+                } else {
+                    console.error("Error:", response.message);
+                }
+            });
+        }
+
+        // 发送文本命令函数
+        function sendText() {
+            if (!socket) {
+                alert("WebSocket not connected. Please try again.");
+                return;
+            }
+            const text = document.getElementById('text_input').value;
+            const device_id = "{{ device_id }}";
+            socket.emit('update_config', {
+                device_id: device_id,
+                config: { "interaction.command": text }
+            }, (response) => {
+                if (response.status === "success") {
+                    console.log("Text sent:", text);
+                } else {
+                    console.error("Error:", response.message);
+                }
+            });
+        }
+
+
+        function showUnbindConfirm() {
+            document.getElementById('unbindConfirmModal').style.display = 'flex';
+        }
+
+        function hideUnbindConfirm() {
+            document.getElementById('unbindConfirmModal').style.display = 'none';
+        }
+
+        function unbindDevice() {
+            const deviceId = new URLSearchParams(window.location.search).get('device_id');
+            if (!deviceId) {
+                console.error("Unable to get device ID");
+                showSuccessMessage('Unable to get device ID', true);
+                hideUnbindConfirm();
+                return;
+            }
+
+            // Show loading state
+            const unbindButton = document.querySelector('#unbindConfirmModal .control-button');
+            const originalText = unbindButton.textContent;
+            unbindButton.disabled = true;
+            unbindButton.textContent = 'Unbinding...';
+
+            // Call the server API to unbind the device
+            fetch(`/api/unbind_device/${deviceId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'same-origin' // Include cookies for authentication
+            })
+                .then(response => response.json())
+                .then(data => {
+                    hideUnbindConfirm();
+                    if (data.success) {
+                        showSuccessMessage('Device successfully unbound!');
+                        // Redirect to the main page after a short delay
+                        setTimeout(() => {
+                            window.location.href = '/';
+                        }, 2000);
+                    } else {
+                        showSuccessMessage(`Unbinding failed: ${data.message}`, true);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error unbinding device:', error);
+                    showSuccessMessage('Error unbinding device, please try again later', true);
+                    hideUnbindConfirm();
+                })
+                .finally(() => {
+                    // Reset button state
+                    unbindButton.disabled = false;
+                    unbindButton.textContent = originalText;
+                });
+        }
+
+        function showSuccessMessage(message, isError = false) {
+            // 创建简洁的消息容器
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success-message';
+            if (isError) {
+                successDiv.classList.add('error');
+            }
+
+            // 创建消息内容容器
+            const messageContent = document.createElement('div');
+            messageContent.className = 'message-content';
+
+            // 添加图标和消息文本
+            const iconClass = isError ? 'bx bx-x-circle' : 'bx bx-check-circle';
+            messageContent.innerHTML = `<i class='${iconClass}'></i>${message}`;
+
+            // 创建关闭按钮
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'close-btn';
+            closeBtn.innerHTML = '<i class="bx bx-x" style="display: block;"></i>';
+            closeBtn.onclick = function() {
+                successDiv.classList.remove('show');
+                setTimeout(() => successDiv.remove(), 300);
+            };
+
+            // 组装消息
+            successDiv.appendChild(messageContent);
+            successDiv.appendChild(closeBtn);
+
+            // 添加到页面
+            document.body.appendChild(successDiv);
+
+            // 添加显示动画
+            setTimeout(() => {
+                successDiv.classList.add('show');
+            }, 50);
+
+            // 自动隐藏（错误消息显示时间更长）
+            const displayTime = isError ? 5000 : 4000;
+            setTimeout(() => {
+                if (document.body.contains(successDiv)) {
+                    successDiv.classList.remove('show');
+                    setTimeout(() => {
+                        if (document.body.contains(successDiv)) {
+                            successDiv.remove();
+                        }
+                    }, 300);
+                }
+            }, displayTime);
+        }
+
+        // Input-Output Device Connection Functions
+
+        // Function to show the device connections modal
+        function showDeviceConnectionsModal() {
+            console.log("Opening device connections modal");
+
+            // Clear previous data
+            document.getElementById('inputDevicesTableBody').innerHTML = '<tr><td colspan="4" class="loading-indicator">Loading input devices...</td></tr>';
+            document.getElementById('outputDevicesTableBody').innerHTML = '<tr><td colspan="4" class="loading-indicator">Loading output devices...</td></tr>';
+
+            // Show the modal
+            deviceConnectionsModal.style.display = 'block';
+
+            // Load devices
+            loadDevicesForConnectionModal();
+        }
+
+        // Function to load devices for the connection modal
+        function loadDevicesForConnectionModal() {
+            if (!currentConfig || !currentConfig.devices) {
+                console.error("No device configuration available");
+                return;
+            }
+
+            const inputDevices = [];
+            const outputDevices = [];
+
+            // Find all input and output devices
+            for (const deviceType in currentConfig.devices) {
+                for (const deviceId in currentConfig.devices[deviceType]) {
+                    const device = currentConfig.devices[deviceType][deviceId];
+                    if (device) {
+                        const deviceInfo = {
+                            type: deviceType,
+                            id: deviceId,
+                            name: device.name || deviceId,
+                            location: device.location || 'Unknown location',
+                            control_type: device.control_type
+                        };
+
+                        if (device.control_type === 'input') {
+                            inputDevices.push(deviceInfo);
+                        } else if (device.control_type === 'output') {
+                            outputDevices.push(deviceInfo);
+                        }
+                    }
+                }
+            }
+
+            // Populate input devices table
+            const inputDevicesTableBody = document.getElementById('inputDevicesTableBody');
+            inputDevicesTableBody.innerHTML = '';
+
+            if (inputDevices.length === 0) {
+                inputDevicesTableBody.innerHTML = '<tr><td colspan="4" class="loading-indicator">No input devices found</td></tr>';
+            } else {
+                inputDevices.forEach(device => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="select-column">
+                            <input type="radio" name="inputDevice" id="input-${device.type}-${device.id}"
+                                data-type="${device.type}" data-id="${device.id}">
+                        </td>
+                        <td>${device.name}</td>
+                        <td>${device.type}</td>
+                        <td>${device.location}</td>
+                    `;
+                    inputDevicesTableBody.appendChild(row);
+
+                    // Add click event to the row
+                    row.addEventListener('click', function() {
+                        const radio = this.querySelector('input[type="radio"]');
+                        radio.checked = true;
+                        loadOutputConnectionsForInput(device.type, device.id);
+                    });
+                });
+            }
+
+            // Populate output devices table
+            const outputDevicesTableBody = document.getElementById('outputDevicesTableBody');
+            outputDevicesTableBody.innerHTML = '';
+
+            if (outputDevices.length === 0) {
+                outputDevicesTableBody.innerHTML = '<tr><td colspan="4" class="loading-indicator">No output devices found</td></tr>';
+            } else {
+                outputDevices.forEach(device => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="select-column">
+                            <input type="checkbox" id="output-${device.type}-${device.id}"
+                                data-type="${device.type}" data-id="${device.id}">
+                        </td>
+                        <td>${device.name}</td>
+                        <td>${device.type}</td>
+                        <td>${device.location}</td>
+                    `;
+                    outputDevicesTableBody.appendChild(row);
+
+                    // Add click event to the row
+                    row.addEventListener('click', function(e) {
+                        if (e.target.type !== 'checkbox') {
+                            const checkbox = this.querySelector('input[type="checkbox"]');
+                            checkbox.checked = !checkbox.checked;
+                        }
+                    });
+                });
+            }
+        }
+
+        // Function to load output connections for a selected input device
+        function loadOutputConnectionsForInput(inputType, inputId) {
+            console.log(`Loading output connections for input device: ${inputType}.${inputId}`);
+
+            // Get current connections
+            let currentConnections = [];
+            if (currentConfig && currentConfig.devices &&
+                currentConfig.devices[inputType] &&
+                currentConfig.devices[inputType][inputId] &&
+                currentConfig.devices[inputType][inputId].connected_outputs) {
+                currentConnections = currentConfig.devices[inputType][inputId].connected_outputs || [];
+            }
+
+            // Update checkboxes
+            const outputCheckboxes = document.querySelectorAll('#outputDevicesTableBody input[type="checkbox"]');
+            outputCheckboxes.forEach(checkbox => {
+                const outputType = checkbox.dataset.type;
+                const outputId = checkbox.dataset.id;
+
+                // Check if this output is connected to the selected input
+                checkbox.checked = currentConnections.some(conn =>
+                    conn.type === outputType && conn.id === outputId);
+            });
+        }
+
+        // Function to update all connected output devices when an input device state changes
+        function updateConnectedOutputDevices(inputType, inputId, newState) {
+            console.log(`Updating connected output devices for ${inputType}.${inputId} with state: ${newState}`);
+
+            // Check if the input device has connected outputs
+            if (!currentConfig ||
+                !currentConfig.devices ||
+                !currentConfig.devices[inputType] ||
+                !currentConfig.devices[inputType][inputId] ||
+                !currentConfig.devices[inputType][inputId].connected_outputs) {
+                console.log(`No connected outputs found for ${inputType}.${inputId}`);
+                return;
+            }
+
+            const connectedOutputs = currentConfig.devices[inputType][inputId].connected_outputs;
+            console.log(`Found ${connectedOutputs.length} connected outputs:`, connectedOutputs);
+
+            // Update each connected output device
+            connectedOutputs.forEach(output => {
+                const outputType = output.type;
+                const outputId = output.id;
+
+                console.log(`Updating output device ${outputType}.${outputId} to state: ${newState}`);
+
+                // Update the output device state in the configuration
+                if (currentConfig.devices[outputType] &&
+                    currentConfig.devices[outputType][outputId]) {
+
+                    // Update the state in the current configuration
+                    currentConfig.devices[outputType][outputId].state = newState;
+
+                    // Update the UI
+                    const outputCard = document.getElementById(`card-${outputType}-${outputId}`);
+                    const outputSwitch = document.getElementById(`switch-${outputType}-${outputId}`);
+
+                    if (outputCard) {
+                        if (newState) {
+                            outputCard.classList.add('active');
+                        } else {
+                            outputCard.classList.remove('active');
+                        }
+                    }
+
+                    if (outputSwitch) {
+                        outputSwitch.checked = newState;
+                    }
+
+                    // Send the update to the server
+                    updateConfig(`devices.${outputType}.${outputId}.state`, newState);
+                }
+            });
+        }
+
+        // Function to save device connections
+        function saveDeviceConnections() {
+            // Get selected input device
+            const selectedInput = document.querySelector('#inputDevicesTableBody input[type="radio"]:checked');
+            if (!selectedInput) {
+                showSuccessMessage('Please select an input device', true);
+                return;
+            }
+
+            const inputType = selectedInput.dataset.type;
+            const inputId = selectedInput.dataset.id;
+
+            // Get selected output devices
+            const selectedOutputs = document.querySelectorAll('#outputDevicesTableBody input[type="checkbox"]:checked');
+            const connectedOutputs = Array.from(selectedOutputs).map(checkbox => ({
+                type: checkbox.dataset.type,
+                id: checkbox.dataset.id
+            }));
+
+            console.log(`Saving connections for ${inputType}.${inputId}:`, connectedOutputs);
+
+            // 保存当前设备的其他属性
+            let updatedDevice = {};
+
+            // 如果设备已存在于当前配置中，保留其他属性
+            if (currentConfig &&
+                currentConfig.devices &&
+                currentConfig.devices[inputType] &&
+                currentConfig.devices[inputType][inputId]) {
+
+                // 复制现有设备的所有属性
+                updatedDevice = {...currentConfig.devices[inputType][inputId]};
+            }
+
+            // 更新连接输出设备列表
+            updatedDevice.connected_outputs = connectedOutputs;
+
+            // Update the configuration
+            socket.emit('update_config', {
+                device_id: "{{ device_id }}",
+                config: {
+                    devices: {
+                        [inputType]: {
+                            [inputId]: updatedDevice
+                        }
+                    }
+                }
+            });
+
+            // Close the modal
+            deviceConnectionsModal.style.display = 'none';
+
+            // Show success message
+            showSuccessMessage('Device connections updated successfully');
+
+            // Request updated configuration
+            setTimeout(() => {
+                socket.emit('request_current_config', { device_id: "{{ device_id }}" });
+            }, 500);
+        }
+
+        // Function to open the input connections configuration modal
+        function configureInputConnections(deviceType, deviceId) {
+            console.log(`Configuring connections for input device: ${deviceType}.${deviceId}`);
+
+            // Get the current device info
+            let deviceName = '';
+            let deviceInfo = null;
+
+            // Find the device in the current config
+            if (currentConfig && currentConfig.devices && currentConfig.devices[deviceType]) {
+                deviceInfo = currentConfig.devices[deviceType][deviceId];
+                if (deviceInfo) {
+                    deviceName = deviceInfo.name || deviceId;
+                }
+            }
+
+            // Set the input device information in the modal
+            document.getElementById('inputDeviceName').textContent = deviceName;
+            document.getElementById('inputDeviceType').textContent = deviceType;
+            document.getElementById('connectionInputDeviceType').value = deviceType;
+            document.getElementById('connectionInputDeviceId').value = deviceId;
+
+            // Clear previous output devices list
+            const outputDevicesList = document.getElementById('outputDevicesList');
+            outputDevicesList.innerHTML = '<div class="loading-indicator">Loading available devices...</div>';
+
+            // Show the modal
+            document.getElementById('inputConnectionsModal').style.display = 'block';
+
+            // Load available output devices
+            loadOutputDevices(deviceType, deviceId);
+        }
+
+        // Function to load available output devices
+        function loadOutputDevices(inputDeviceType, inputDeviceId) {
+            const outputDevicesList = document.getElementById('outputDevicesList');
+
+            // Get current connections
+            let currentConnections = [];
+            if (currentConfig && currentConfig.devices &&
+                currentConfig.devices[inputDeviceType] &&
+                currentConfig.devices[inputDeviceType][inputDeviceId] &&
+                currentConfig.devices[inputDeviceType][inputDeviceId].connected_outputs) {
+                currentConnections = currentConfig.devices[inputDeviceType][inputDeviceId].connected_outputs || [];
+            }
+
+            // Find all output devices in the current config
+            let outputDevices = [];
+            if (currentConfig && currentConfig.devices) {
+                for (const deviceType in currentConfig.devices) {
+                    for (const deviceId in currentConfig.devices[deviceType]) {
+                        const device = currentConfig.devices[deviceType][deviceId];
+                        if (device.control_type === 'output') {
+                            outputDevices.push({
+                                type: deviceType,
+                                id: deviceId,
+                                name: device.name || deviceId,
+                                location: device.location || 'Unknown location',
+                                connected: currentConnections.some(conn =>
+                                    conn.type === deviceType && conn.id === deviceId)
+                            });
+                        }
+                    }
+                }
+            }
+
+            // Clear loading indicator
+            outputDevicesList.innerHTML = '';
+
+            // If no output devices found
+            if (outputDevices.length === 0) {
+                outputDevicesList.innerHTML = '<div class="loading-indicator">No output devices available</div>';
+                return;
+            }
+
+            // Add output devices to the list
+            outputDevices.forEach(device => {
+                const checkboxItem = document.createElement('div');
+                checkboxItem.className = 'checkbox-item';
+
+                const uniqueId = `output-${device.type}-${device.id}`;
+
+                checkboxItem.innerHTML = `
+                    <input type="checkbox" id="${uniqueId}"
+                        data-type="${device.type}"
+                        data-id="${device.id}"
+                        ${device.connected ? 'checked' : ''}>
+                    <label for="${uniqueId}">
+                        ${device.name}
+                        <span class="device-badge">${device.type}</span>
+                    </label>
+                `;
+
+                outputDevicesList.appendChild(checkboxItem);
+            });
+        }
+
+        // Function to save input connections
+        function saveInputConnections() {
+            const inputDeviceType = document.getElementById('connectionInputDeviceType').value;
+            const inputDeviceId = document.getElementById('connectionInputDeviceId').value;
+
+            // Get all checked output devices
+            const checkedOutputs = document.querySelectorAll('#outputDevicesList input[type="checkbox"]:checked');
+            const connectedOutputs = Array.from(checkedOutputs).map(checkbox => ({
+                type: checkbox.dataset.type,
+                id: checkbox.dataset.id
+            }));
+
+            console.log(`Saving connections for ${inputDeviceType}.${inputDeviceId}:`, connectedOutputs);
+
+            // 保存当前设备的其他属性
+            let updatedDevice = {};
+
+            // 如果设备已存在于当前配置中，保留其他属性
+            if (currentConfig &&
+                currentConfig.devices &&
+                currentConfig.devices[inputDeviceType] &&
+                currentConfig.devices[inputDeviceType][inputDeviceId]) {
+
+                // 复制现有设备的所有属性
+                updatedDevice = {...currentConfig.devices[inputDeviceType][inputDeviceId]};
+            }
+
+            // 更新连接输出设备列表
+            updatedDevice.connected_outputs = connectedOutputs;
+
+            // Update the configuration
+            socket.emit('update_config', {
+                device_id: "{{ device_id }}",
+                config: {
+                    devices: {
+                        [inputDeviceType]: {
+                            [inputDeviceId]: updatedDevice
+                        }
+                    }
+                }
+            });
+
+            // Close the modal
+            document.getElementById('inputConnectionsModal').style.display = 'none';
+
+            // Show success message
+            showSuccessMessage('Device connections updated successfully');
+
+            // Request updated configuration
+            setTimeout(() => {
+                socket.emit('request_current_config', { device_id: "{{ device_id }}" });
+            }, 500);
+        }
+
+        function hideSettingsModal() {
+            document.getElementById('settingsModal').style.display = 'none';
+        }
+
+        function saveSettings() {
+            console.log('Settings saved!');
+            hideSettingsModal();
+        }
+
+        function resetDeviceSettings() {
+            console.log('Device settings reset!');
+        }
+
+        // 保存设备编辑
+        function saveDeviceEdit() {
+            const deviceType = document.getElementById('editDeviceType').value;
+            const deviceId = document.getElementById('editDeviceId').value;
+            const deviceName = document.getElementById('editDeviceName').value;
+            const deviceLocation = document.getElementById('editDeviceLocation').value;
+
+            if (!deviceName.trim()) {
+                alert('Device name cannot be empty');
+                return;
+            }
+
+            console.log(`Saving device edit: ${deviceType}.${deviceId}`, {
+                name: deviceName,
+                location: deviceLocation
+            });
+
+            // 更新设备卡片UI
+            const deviceCard = document.getElementById(`card-${deviceType}-${deviceId}`);
+            if (deviceCard) {
+                const titleElement = deviceCard.querySelector('.device-title');
+                if (titleElement) {
+                    // 保留类型信息
+                    const typeInfo = `<small>(${deviceType})</small>`;
+                    titleElement.innerHTML = `${deviceName} ${typeInfo}`;
+                }
+
+                const locationElement = deviceCard.querySelector('.device-location');
+                if (locationElement) {
+                    locationElement.textContent = deviceLocation;
+                }
+            }
+
+            // 发送更新到服务器
+            socket.emit('update_config', {
+                device_id: "{{ device_id }}",
+                config: {
+                    devices: {
+                        [deviceType]: {
+                            [deviceId]: {
+                                name: deviceName,
+                                location: deviceLocation
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 关闭模态框
+            document.getElementById('editDeviceModal').style.display = 'none';
+
+            // 显示成功消息
+            showSuccessMessage('Device updated successfully');
+        }
+
+        function showSettingsModal() {
+            // Get the device ID and IP from URL parameters or default values
+            const deviceId = new URLSearchParams(window.location.search).get('device_id') || 'Unknown';
+
+            // Update device information in the settings modal
+            document.getElementById('settings-device-id').textContent = deviceId;
+            document.getElementById('settings-ip-address').textContent = '{{ device_ip }}';
+
+            // Show the settings modal
+            document.getElementById('settingsModal').style.display = 'flex';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // 初始化音量滑块显示值
+            updateVolumeDisplay('general_volume', 'current_general_volume');
+            updateVolumeDisplay('music_volume', 'current_music_volume');
+
+            // 缓存DOM元素
+            const elements = {
+                controlPanel: document.getElementById('controlPanel'),
+                openInitBtn: document.getElementById('openInitBtn'),
+                initModal: document.getElementById('initModal'),
+                startInitBtn: document.getElementById('startInitBtn'),
+                confirmModal: document.getElementById('confirmModal'),
+                confirmBtn: document.getElementById('confirmBtn'),
+                cancelBtn: document.getElementById('cancelBtn'), // 添加取消按钮引用
+                confirmContent: document.getElementById('confirmContent'),
+                initContainer: document.querySelector('.init-container'),
+                initForm: document.getElementById('initForm'),
+                requiredFields: document.querySelectorAll('[required]'),
+                closeInitBtn: document.getElementById('closeInitBtn') // 添加关闭按钮引用
+            };
+
+            let countdownTimer;
+
+            // 事件绑定
+            console.log("Binding event listeners");
+            console.log("openInitBtn:", elements.openInitBtn);
+
+            if (elements.openInitBtn) {
+                elements.openInitBtn.addEventListener('click', function () {
+                    console.log("openInitBtn clicked");
+                    showInitModal();
+                });
+            } else {
+                console.error("openInitBtn not found");
+            }
+
+            elements.startInitBtn.addEventListener('click', processInitForm);
+            elements.confirmBtn.addEventListener('click', confirmInitialization);
+            elements.cancelBtn.addEventListener('click', returnToForm); // 添加取消按钮点击事件
+            elements.closeInitBtn.addEventListener('click', function () {
+                hideModals();
+            }); // 添加关闭按钮点击事件
+
+            // 表单验证
+            elements.requiredFields.forEach(field => {
+                field.addEventListener('blur', validateField);
+                field.addEventListener('input', clearError);
+            });
+
+            // 弹窗关闭逻辑
+            document.querySelectorAll('.modal-overlay').forEach(modal => {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) hideModals();
+                });
+            });
+
+            // 使用全局showInitModal函数，这里只是为了保持代码结构
+
+            function validateField(e) {
+                const field = e.target;
+                const error = field.parentElement.querySelector('.error-message');
+
+                if (!error) return;
+
+                if (field.id === 'userAge' || field.id === 'characterAge') {
+                    const min = parseInt(field.min);
+                    const max = parseInt(field.max);
+                    const value = parseInt(field.value);
+
+                    if (isNaN(value) || value < min || value > max) {
+                        showError(field, error);
+                        return false;
+                    }
+                } else if (field.id === 'userProfile' && field.value.length < 50) {
+                    showError(field, error);
+                    return false;
+                } else if (field.tagName === 'SELECT' && !field.value) {
+                    showError(field, error);
+                    return false;
+                } else if (!field.value.trim()) {
+                    showError(field, error);
+                    return false;
+                }
+
+                return true;
+            }
+
+            function showError(field, error) {
+                field.style.borderColor = '#e53e3e';
+                if (error) error.style.display = 'block';
+            }
+
+            function clearError(e) {
+                const field = e.target;
+                field.style.borderColor = '';
+                const error = field.parentElement.querySelector('.error-message');
+                if (error) error.style.display = 'none';
+            }
+
+            function processInitForm() {
+                console.log("Processing init form");
+                let isValid = true;
+
+                // 验证所有必填字段
+                elements.requiredFields.forEach(field => {
+                    if (!validateField({ target: field })) {
+                        isValid = false;
+                    }
+                });
+
+                if (!isValid) {
+                    console.log("Form validation failed");
+                    return;
+                }
+
+                console.log("Form validation passed, proceeding to confirmation");
+
+                // 收集数据
+                const configData = {
+                    user: {
+                        name: document.getElementById('userName').value,
+                        age: document.getElementById('userAge').value,
+                        hobbies: document.getElementById('userHobbie').value || 'Unset',
+                        district: document.getElementById('userDistrict').value,
+                        profile: document.getElementById('userProfile').value
+                    },
+                    character: {
+                        name: document.getElementById('characterName').value,
+                        age: document.getElementById('characterAge').value,
+                        relation: document.getElementById('characterRelation').value,
+                        personality: document.getElementById('Character-Personality').value
+                    }
+                };
+
+                // 获取下拉框文本
+                const relationSelect = document.getElementById('characterRelation');
+                const personalitySelect = document.getElementById('Character-Personality');
+                const relationText = relationSelect.options[relationSelect.selectedIndex].text;
+                const personalityText = personalitySelect.options[personalitySelect.selectedIndex].text;
+
+                // 更新确认内容
+                elements.confirmContent.innerHTML = `
+                    <div class="config-section">
+                        <h4>User details</h4>
+                        <p><strong>Name: </strong>${configData.user.name}</p>
+                        <p><strong>Age: </strong>${configData.user.age} years old</p>
+                        <p><strong>Hobbies: </strong>${configData.user.hobbies}</p>
+                        <p><strong>District: </strong>${configData.user.district}</p>
+                    </div>
+                    <div class="config-section">
+                        <h4>Character details</h4>
+                        <p><strong>Character name: </strong>${configData.character.name}</p>
+                        <p><strong>Character Age: </strong>${configData.character.age} years old</p>
+                        <p><strong>Character Relation: </strong>${relationText}</p>
+                        <p><strong>Character Personality: </strong>${personalityText}</p>
+                    </div>
+                `;
+
+                // 显示确认弹窗
+                hideModals();
+                elements.confirmModal.style.display = 'flex';
+                startCountdown();
+            }
+
+            function startCountdown() {
+                let count = 3;
+                elements.confirmBtn.disabled = true;
+                elements.confirmBtn.textContent = `Confirm submit（${count}）`;
+
+                clearInterval(countdownTimer);
+                countdownTimer = setInterval(() => {
+                    count--;
+                    elements.confirmBtn.textContent = `Confirm submit（${count}）`;
+
+                    if (count <= 0) {
+                        clearInterval(countdownTimer);
+                        elements.confirmBtn.disabled = false;
+                        elements.confirmBtn.textContent = 'Confirm submit';
+                    }
+                }, 1000);
+            }
+
+            function confirmInitialization() {
+                console.log("Confirming initialization");
+                if (elements.confirmBtn.disabled) {
+                    console.log("Button is disabled, waiting for countdown");
+                    return;
+                }
+
+                console.log("Proceeding with initialization");
+                hideModals();
+                elements.controlPanel.classList.add('enabled');
+                elements.initContainer.style.display = 'none';
+
+                // 收集初始化数据
+                const configData = {
+                    user_personalization: {
+                        name: document.getElementById('userName').value,
+                        age: document.getElementById('userAge').value,
+                        hobbies: document.getElementById('userHobbie').value || 'Unset',
+                        region: document.getElementById('userDistrict').value,
+                        profile: document.getElementById('userProfile').value
+                    },
+                    device_role_personalization: {
+                        name: document.getElementById('characterName').value,
+                        age: document.getElementById('characterAge').value,
+                        relationship: document.getElementById('characterRelation').value,
+                        personality: document.getElementById('Character-Personality').value
+                    },
+                    system: {
+                        initialized: true  // 设置初始化标志
+                    }
+                };
+
+                // 发送更新配置请求
+                socket.emit('update_config', {
+                    device_id: "{{ device_id }}",
+                    config: configData
+                });
+
+                // 显示成功消息
+                showSuccessMessage('Model has been initialized successfully!');
+                console.log("Initialization complete");
+            }
+
+            // 使用全局的showSuccessMessage函数，不再需要这个内部定义
+            // 这个函数已被移除，使用外部定义的showSuccessMessage函数
+
+            function hideModals() {
+                console.log("Hiding all modals");
+                document.querySelectorAll('.modal-overlay').forEach(m => {
+                    console.log("Hiding modal:", m.id);
+                    m.style.display = 'none';
+                });
+                elements.openInitBtn.innerHTML = '⚙️ Starting Device Initialization';
+            }
+
+            // 添加取消按钮返回表单功能
+            function returnToForm() {
+                elements.confirmModal.style.display = 'none';
+                elements.initModal.style.display = 'flex';
+            }
+
+
+        });
+
+        // 处理返回按钮点击事件
+        document.addEventListener('DOMContentLoaded', function () {
+            const backButton = document.getElementById('backButton');
+            if (backButton) {
+                backButton.addEventListener('click', function () {
+                    // 使用Flask的url_for方式返回到设备发现页面
+                    window.location.href = '{{ url_for("discovery_model") }}';
+                });
+            }
+        });
+
+        // 使侧边栏高度与主内容区域高度相同
+        function adjustSidebarHeight() {
+            const mainContent = document.querySelector('.main-content');
+            const sidebar = document.querySelector('.sidebar');
+            const mainPanel = document.querySelector('.main-content .control-panel');
+
+            if (mainContent && sidebar && mainPanel) {
+                // 获取主内容区域的高度
+                const mainContentHeight = mainPanel.offsetHeight;
+
+                // 设置侧边栏高度与主内容区域高度相同
+                const sidebarPanel = document.querySelector('.sidebar .control-panel');
+                if (sidebarPanel) {
+                    sidebarPanel.style.height = mainContentHeight + 'px';
+                }
+            }
+        }
+
+        // 页面加载完成后调整侧边栏高度
+        document.addEventListener('DOMContentLoaded', function () {
+            adjustSidebarHeight();
+
+            // 窗口大小改变时重新调整高度
+            window.addEventListener('resize', adjustSidebarHeight);
+
+            // 内容变化时也调整高度（例如动态加载内容后）
+            const observer = new MutationObserver(adjustSidebarHeight);
+            observer.observe(document.querySelector('.main-content'), {
+                childList: true,
+                subtree: true,
+                attributes: true,
+                characterData: true
+            });
+        });
+    </script>
+</body>
+
+</html>

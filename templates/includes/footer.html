@@ -1,0 +1,54 @@
+<!-- Footer -->
+<footer class="footer">
+    <div class="container">
+        <div class="footer-content">
+            <div class="footer-brand">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="Yumi Logo" class="footer-logo">
+                <p>Yumi is an emotional AI companion designed to provide warmth, support, and understanding,
+                    especially for those who need it most.</p>
+                <div class="social-links">
+                    <a href="https://www.facebook.com/profile.php?id=61576729602541" class="social-icon"><i class="fab fa-facebook-f"></i></a>
+                    <a href="https://x.com/YUMI337187" class="social-icon"><i class="fab fa-twitter"></i></a>
+                    <a href="https://www.instagram.com/yumi337187/" class="social-icon"><i class="fab fa-instagram"></i></a>
+                </div>
+            </div>
+
+            <div class="footer-links">
+                <h3>Quick Links</h3>
+                <ul>
+                    <li><a href="{{ url_for('index') }}"><i class="fas fa-home"></i> Home</a></li>
+                    <li><a href="{{ url_for('discovery_model') }}"><i class="fas fa-terminal"></i> Console</a></li>
+                    <li><a href="{{ url_for('about_us') }}"><i class="fas fa-users"></i> About Us</a></li>
+                    <li><a href="{{ url_for('faq') }}"><i class="fas fa-question-circle"></i> FAQ</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-contact">
+                <h3>Contact Us</h3>
+                <ul>
+                    <li><i class="fas fa-map-marker-alt"></i> Ixora Apartment, Jalan D1, 75450 Malacca</li>
+                    <li><i class="fas fa-phone"></i> Phone: +60 11-577 68208</li>
+                    <li><i class="fas fa-envelope"></i> Email: yumi337187@gmail.com</li>
+                    <li><i class="fas fa-clock"></i> Hours: Mon-Fri 9AM-5PM</li>
+                </ul>
+            </div>
+
+            <div class="footer-links">
+                <h3>Support</h3>
+                <ul>
+                    <li><a href="{{ url_for('privacy_policy') }}"><i class="fas fa-shield-alt"></i> Privacy Policy</a></li>
+                    <li><a href="{{ url_for('terms_of_use') }}"><i class="fas fa-file-contract"></i> Terms of Service</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <p>&copy; 2025 Yumi Assistant. All rights reserved.</p>
+        </div>
+    </div>
+</footer>
+
+<!-- Back to Top Button -->
+<a href="#" class="back-to-top" id="backToTop">
+    <i class="fas fa-arrow-up"></i>
+</a>

@@ -1,0 +1,119 @@
+{
+    "system": {
+        "device_id": "default_device_id",
+        "password": "654321",
+        "user_id": "default_user_id",
+        "boot_time": "",
+        "model": "raspberry_pi",
+        "version": "1.0.0",
+        "language": "chinese",
+        "status": "offline",
+        "log_level": "DEBUG",
+        "last_update": 1746938034.9392285,
+        "initialized": false
+    },
+    "wake_word": {
+        "enabled": true
+    },
+    "STT": {
+        "enabled": true,
+        "active_service": "azure",
+        "language": "en-US"
+    },
+    "TTS": {
+        "enabled": true,
+        "active_service": "bytedance",
+        "model_id": "ICL_zh_female_chengshujiejie_tob",
+        "language": "zh-CN",
+        "azure": {
+            "model_id": "zh-CN-XiaoxiaoNeural"
+        },
+        "bytedance": {
+            "model_id": "ICL_zh_female_chengshujiejie_tob"
+        }
+    },
+    "LLM": {
+        "enabled": true,
+        "active_service": "groq",
+        "model_id": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "temperature": 0.9,
+        "max_tokens": 128,
+        "summary_tokens": 3000,
+        "last_messages_num": 2,
+        "openai": {
+            "model_id": "gpt-4o-mini"
+        },
+        "deepseek": {
+            "model_id": "deepseek-chat"
+        },
+        "groq": {
+            "model_id": "meta-llama/llama-4-scout-17b-16e-instruct"
+        }
+    },
+    "music": {
+        "enabled": true,
+        "resume_play": true,
+        "tts_notify": true
+    },
+    "time_notify": {
+        "enabled": true,
+        "interval": 60
+    },
+    "schedule_notify": {
+        "enabled": true,
+        "interval": 60
+    },
+    "weather": {
+        "enabled": true,
+        "location": "Ayer Keroh",
+        "last_updated": "",
+        "interval": 7200,
+        "days": []
+    },
+    "state_flags": {
+        "chat_active": false,
+        "notification_active": false,
+        "mqtt_message_active": false,
+        "recording_active": false,
+        "stt_active": false,
+        "llm_active": false,
+        "tts_active": false
+    },
+    "audio_settings": {
+        "general_volume": 50,
+        "music_volume": 50,
+        "notification_volume": 50
+    },
+    "interaction": {
+        "command": "",
+        "answer": "",
+        "next_enable": false
+    },
+    "devices": {
+        "lighting": {},
+        "climate": {},
+        "media": {}
+    },
+    "user_personalization": {
+        "name": "",
+        "age": "",
+        "hobbies": "",
+        "region": "",
+        "profile": ""
+    },
+    "device_role_personalization": {
+        "name": "",
+        "age": "",
+        "relationship": "",
+        "personality": "",
+        "background": ""
+    },
+    "mqtt": {
+        "broker": "broker.emqx.io",
+        "port": 1883,
+        "username": null,
+        "password": null,
+        "client_id_prefix": "smart_assistant_87",
+        "topic_prefix": "smart0337187"
+    }
+}
