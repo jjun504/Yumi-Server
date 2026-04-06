@@ -78,7 +78,7 @@ This is basically the backend of Yumi. You can visit the client repository here:
    - Open browser and navigate to `http://localhost:5000`
    - Create an account or login with existing credentials
 
-## 🔌 Hardware Integration
+## Hardware Integration
 
 ### Supported Device Types
 - **Lighting**: Smart bulbs, LED strips, switches
