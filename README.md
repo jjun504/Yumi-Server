@@ -1,8 +1,12 @@
-# Yumi Smart Assistant
+# Yumi Server - Smart Assistant
 
-A comprehensive AI-powered smart assistant system with voice interaction, smart home control, and multi-service integration capabilities.
+![Yumi](static\logo.png)
 
-## 🌟 Features
+Yumi, comprehensive AI-powered smart assistant with *customizable* voice interaction, smart home control, and multi-service integration capabilities.
+
+This is basically the backend of Yumi. You can visit the client repository here: [Yumi Client](https://github.com/jjun504/Yumi-Client)
+
+## Features
 
 ### Core Capabilities
 - **Voice Interaction**: Wake word detection with real-time speech-to-text and text-to-speech
@@ -19,42 +23,13 @@ A comprehensive AI-powered smart assistant system with voice interaction, smart 
 - **Text-to-Speech (TTS)**: Bytedance TTS, Azure TTS, GPT-SoVITS (Custom Voice)
 - **Large Language Models (LLM)**: Groq, OpenAI, DeepSeek
 
-> **⚠️ Important Note**: GPT-SoVITS (Custom Voice) TTS service is currently **not available for public use**. The GPT-SoVITS integration is implemented in the codebase but requires a self-hosted GPT-SoVITS server instance. Users need to set up their own GPT-SoVITS server and configure the appropriate API endpoints to use this feature.
+> **Important Note**: The GPT-SoVITS integration is implemented in the codebase but requires a self-hosted GPT-SoVITS server instance. Users need to set up their own GPT-SoVITS server and configure the appropriate API endpoints to use this feature.
 
 ### Communication Protocols
 - **UDP + MQTT**: Device discovery and communication
 - **WebSocket**: Real-time web interface communication
-- **Event System**: Internal event-driven architecture
 
-## 🏗️ System Architecture
-
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   Web Interface │    │  Voice Interface │    │  Smart Devices  │
-│   (Flask/HTML)  │    │  (STT/TTS/Wake)  │    │   (MQTT/UDP)    │
-└─────────┬───────┘    └─────────┬────────┘    └────────┬────────┘
-          │                      │                      │
-          └──────────────────────┼──────────────────────┘
-                                 │
-                    ┌────────────┴──────────────┐
-                    │     Server Core           │
-                    │  - Event System           │
-                    │  - Device Manager         │
-                    │  - Chat Processor         │
-                    │  - Configuration Manager  │
-                    └───────────────────────────┘
-                                 │
-          ┌──────────────────────┼──────────────────────┐
-          │                      │                      │
-┌─────────┴───────┐    ┌─────────┴───────┐    ┌─────────┴───────┐
-│   AI Services   │    │   Data Storage  │    │  External APIs  │
-│ - LLM Manager   │    │ - User Data     │    │ - Weather API   │
-│ - TTS Manager   │    │ - Device Config │    │ - YouTube API   │
-│ - STT Manager   │    │ - Chat History  │    │ - Web Search    │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-```
-
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - Python 3.8+
@@ -124,102 +99,28 @@ The system includes Arduino sketches for various smart devices:
 - **Status**: Real-time status updates via MQTT
 - **Audio**: PCM audio streaming for voice interaction
 
-## 🚨 Troubleshooting
-
-### Common Issues
-
-#### Server Won't Start
-```bash
-# Check port availability
-netstat -an | grep :5000
-
-# Check Python environment
-python --version
-pip list | grep flask
-
-# Check configuration
-python -c "from unified_config import unified_config; print('Config OK')"
-```
-
-#### Device Discovery Issues
-```bash
-# Check UDP port
-netstat -an | grep :50000
-
-# Test MQTT connection
-python -c "import paho.mqtt.client as mqtt; print('MQTT OK')"
-
-# Check device configuration
-ls device_configs/
-```
-
-#### AI Service Errors
-```bash
-# Test API keys
-python -c "from groqapi import GroqChatModule; print('Groq OK')"
-python -c "from azureTTS import TTSManager; print('Azure OK')"
-
-# Check service configuration
-grep -r "api_key" config/
-```
-
-#### Audio Issues
-```bash
-# Check libmpv installation
-python -c "import mpv; print('MPV OK')"
-
-# Test audio devices
-python -c "import sounddevice; print(sounddevice.query_devices())"
-
-# Check audio files
-ls sound/
-```
-
-### Log Analysis
-```bash
-# View recent server logs
-tail -f Log/Server_System_Log/system.log
-
-# Check device logs
-tail -f device_configs/*/system.log
-
-# Monitor chat processing
-tail -f logs/stt_stream_bridge_processor.log
-```
-
-### Performance Optimization
-- **Memory Usage**: Monitor Python process memory consumption
-- **CPU Usage**: Check for high CPU usage during AI processing
-- **Network Latency**: Optimize MQTT broker selection
-- **Storage**: Regular cleanup of old chat history and logs
-
-## Team Members
-
-This project was developed by:
-
-| Student ID | Name | Role |
-|------------|------|------|
-| 1221206572 | CHEN JUN XU | Project Lead & Main Developer |
-| 1221208439 | GOH WEI TING | Developer |
-| 1221208146 | LEE ZHENG WEI | Developer |
-
 ## Contact
 
 For questions, support, or collaboration opportunities, please reach out to us:
 
-### 📧 **Primary Contact**
-- **Email**: [1221206572@student.mmu.edu.my](mailto:1221206572@student.mmu.edu.my)
-- **Phone**: +60 11-577 68208
+- **CHEN JUN XU**: [chen.jun.xu@student.mmu.edu.my](mailto:chen.jun.xu@student.mmu.edu.my)
+- **GOH WEI TING**: [goh.wei.ting@student.mmu.edu.my](mailto:goh.wei.ting@student.mmu.edu.my)
+- **LEE ZHENG WEI**: [lee.zheng.wei@student.mmu.edu.my](mailto:lee.zheng.wei@student.mmu.edu.my)
 
-### 👥 **Team Contact**
-- **CHEN JUN XU**: [1221206572@student.mmu.edu.my](mailto:1221206572@student.mmu.edu.my)
-- **GOH WEI TING**: [1221208439@student.mmu.edu.my](mailto:1221208439@student.mmu.edu.my)
-- **LEE ZHENG WEI**: [1221208146@student.mmu.edu.my](mailto:1221208146@student.mmu.edu.my)
-
-### 🏫 **Institution**
+### **Institution**
 **Multimedia University (MMU)**
 Faculty of Information Science and Technology
 
 ---
 
-*© 2025 Yumi Team. All rights reserved.*
+## License
+
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+
+**Third-party notices:**
+- Wake word detection powered by [Porcupine](https://github.com/Picovoice/porcupine) (Picovoice) — subject to [Picovoice Terms of Use](https://picovoice.ai/docs/terms-of-use/)
+- Music playback via [mpv](https://mpv.io/) and [yt-dlp](https://github.com/yt-dlp/yt-dlp)
+
+## Contributing
+
+Issues and Pull Requests are welcome to improve the project.
