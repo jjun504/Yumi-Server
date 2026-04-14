@@ -38,7 +38,7 @@ This is basically the backend of Yumi. You can visit the client repository here:
 
 1. **Create and activate virtual environment**
    ```bash
-   conda create -n smart_assistant python=3.8
+   conda create -n smart_assistant python=3.11
    conda activate smart_assistant
    ```
 
